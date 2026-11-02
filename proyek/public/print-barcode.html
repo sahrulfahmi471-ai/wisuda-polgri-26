@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kartu Barcode & QR Wisudawan (Siap Cetak / Test Scan)</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/sync-client.js"></script>
+  <style>
+    body {
+      background: #0d1322;
+      color: #fff;
+      padding: 2rem 1rem;
+    }
+
+    .print-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      padding: 1.25rem 1.75rem;
+      border-radius: 14px;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .cards-grid-print {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* Kartu Wisuda */
+    .id-card {
+      background: #ffffff;
+      color: #1e293b;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      border: 2px solid #d4af37;
+      display: flex;
+      flex-direction: column;
+      page-break-inside: avoid;
+      position: relative;
+    }
+
+    .id-card-header {
+      background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%);
+      color: #fff;
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 3px solid #d4af37;
+    }
+
+    .id-card-header h4 {
+      font-family: var(--font-serif);
+      font-size: 0.95rem;
+      color: #f7e394;
+      line-height: 1.2;
+    }
+
+    .id-card-header span {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+    }
+
+    .id-card-body {
+      padding: 1rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .id-card-photo {
+      width: 75px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 2px solid #d4af37;
+      background: #f1f5f9;
+    }
+
+    .id-card-info {
+      flex: 1;
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .id-card-info strong {
+      font-size: 0.95rem;
+      color: #0f172a;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+
+    .id-card-barcodes {
+      background: #f8fafc;
+      border-top: 1px dashed #cbd5e1;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 0.5rem;
+    }
+
+    .barcode-svg {
+      max-width: 170px;
+      height: 48px;
+    }
+
+    .qr-canvas {
+      width: 64px !important;
+      height: 64px !important;
+    }
+
+    .id-card-footer {
+      background: #f1f5f9;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #000;
+        padding: 0;
+      }
+      .top-actions, .no-print {
+        display: none !important;
+      }
+      .cards-grid-print {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10mm;
+      }
+      .id-card {
+        box-shadow: none;
+        border: 1px solid #999;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="print-container">
+    <div class="top-actions no-print">
+      <div>
+        <h2 style="font-family: var(--font-serif); color: var(--gold-300); font-size: 1.4rem;">
+          🏷️ Kartu Barcode Wisuda Ke-10 Politeknik PGRI Banten
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          Gunakan kartu ini untuk pengujian scan kamera HP/webcam atau tembakan laser scanner barcode USB.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <button onclick="window.print()" class="btn btn-gold">
+          🖨️ Cetak Semua Kartu (Print)
+        </button>
+        <a href="gelang.html" class="btn btn-gold">
+          🎫 Lihat Template Gelang ↗
+        </a>
+        <a href="index.html" class="btn btn-secondary">
+          🏠 Beranda
+        </a>
+        <a href="operator.html" class="btn btn-secondary">
+          ⬅ Operator
+        </a>
+      </div>
+    </div>
+
+    <!-- Grid Kartu -->
+    <div id="cards-container" class="cards-grid-print">
+      <!-- Generated via JS -->
+    </div>
+  </div>
+
+  <script>
+    const sync = new WisudaSyncClient('printer');
+
+    async function loadCards() {
+      let students = [];
+      try {
+        const res = await fetch('/api/students');
+        const json = await res.json();
+        students = json.data || [];
+      } catch (e) {
+        const fallbackRes = await fetch('./data/students.json');
+        students = await fallbackRes.json();
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetNim = urlParams.get('nim');
+      if (targetNim) {
+        students = students.filter(s => s.nim.toString().trim() === targetNim.trim());
+      }
+
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '';
+
+      students.forEach((student, index) => {
+        const card = document.createElement('div');
+        card.className = 'id-card';
+        card.innerHTML = `
+          <div class="id-card-header">
+            <div style="font-size: 1.5rem;">🎓</div>
+            <div>
+              <h4>POLITEKNIK PGRI BANTEN</h4>
+              <span>KARTU PESERTA WISUDA KE-10</span>
+            </div>
+          </div>
+          <div class="id-card-body">
+            <img src="${student.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'}" class="id-card-photo" alt="${student.nama}">
+            <div class="id-card-info">
+              <strong>${student.nama}</strong>
+              <div style="color: #475569; font-weight: 600;">NIM: ${student.nim}</div>
+              <div style="color: #64748b;">${student.prodi || '-'}</div>
+              <div style="color: #64748b;">${student.fakultas || 'Politeknik PGRI Banten'}</div>
+              ${student.tempatKerja && student.tempatKerja !== '-' ? `<div style="color: #047857; font-size: 0.75rem; font-weight: 700; margin-top: 2px;">🏢 ${student.tempatKerja}</div>` : ''}
+              ${student.isCumlaude ? '<span style="display: inline-block; background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem; margin-top: 4px;">★ CUM LAUDE</span>' : ''}
+            </div>
+          </div>
+          <div class="id-card-barcodes">
+            <div>
+              <canvas id="qr-${index}" class="qr-canvas"></canvas>
+            </div>
+            <div style="text-align: center;">
+              <svg id="barcode-${index}" class="barcode-svg"></svg>
+            </div>
+          </div>
+          <div class="id-card-footer no-print">
+            <a href="gelang.html?nim=${student.nim}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;">
+              🎫 Lihat Gelang
+            </a>
+            <button class="btn btn-gold btn-sm" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="testScanDirect('${student.nim}')">
+              ⚡ Test Scan Ini
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+
+        // Generate Barcode Code128
+        setTimeout(() => {
+          if (typeof JsBarcode !== 'undefined') {
+            try {
+              JsBarcode(`#barcode-${index}`, student.nim.toString(), {
+                format: "CODE128",
+                width: 1.6,
+                height: 38,
+                displayValue: true,
+                fontSize: 12,
+                margin: 0
+              });
+            } catch (err) {}
+          }
+
+          // Generate QR Code
+          if (typeof QRCode !== 'undefined') {
+            const qrCanvas = document.getElementById(`qr-${index}`);
+            if (qrCanvas) {
+              QRCode.toCanvas(qrCanvas, student.nim.toString(), {
+                width: 72,
+                margin: 2,
+                errorCorrectionLevel: 'H',
+                color: {
+                  dark: "#000000",
+                  light: "#ffffff"
+                }
+              }, (err) => {});
+            }
+          }
+        }, 100);
+      });
+    }
+
+    function testScanDirect(nim) {
+      const found = studentsData.find(s => s.nim.toString() === nim.toString());
+      if (found) {
+        sync.sendShowStudent(found);
+        alert(`✅ Wisudawan ${found.nama} (${found.nim}) berhasil dikirim ke Layar Panggung & Operator!`);
+      } else {
+        sync.sendShowStudent({ nim });
+        alert(`Kode ${nim} telah dikirim ke Layar Panggung & Operator!`);
+      }
+    }
+
+    sync.on('students_updated', () => {
+      loadCards();
+    });
+
+    document.addEventListener('DOMContentLoaded', loadCards);
+  </script>
+</body>
+</html>

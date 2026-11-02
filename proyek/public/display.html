@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layar Panggung Wisuda - Universitas Nusantara</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/display.css">
+  <!-- CDN Html5-Qrcode untuk opsi scanner kamera di layar display -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="display-mode theme-royal-gold">
+
+  <!-- Partikel Animasi Latar Belakang -->
+  <canvas id="display-bg-canvas"></canvas>
+
+  <!-- Frame Hiasan Emas Panggung -->
+  <div class="stage-border"></div>
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <!-- Floating HUD Pojok Kanan Atas (Tampil saat kursor bergerak) -->
+  <div class="floating-hud">
+    <div id="conn-status-pill" class="conn-pill">
+      <span class="status-dot active"></span> Layar Siaga
+    </div>
+    <button type="button" id="btn-manual-scan-modal" class="hud-btn" title="Simulasi / Tes Scan Barcode Langsung">
+      🔍
+    </button>
+    <button type="button" id="btn-toggle-cam-display" class="hud-btn" title="Scan QR Menggunakan Kamera / Webcam">
+      📷
+    </button>
+    <button type="button" id="btn-toggle-mute" class="hud-btn" title="Aktif/Mute Suara">
+      🔔
+    </button>
+    <button type="button" id="btn-toggle-fullscreen" class="hud-btn" title="Layar Penuh (F11)">
+      ⛶
+    </button>
+  </div>
+
+  <div class="display-wrapper">
+    <!-- =========================================================
+         1. MODE STANDBY / SIAGA (Sebelum dan Sesudah Wisudawan Discan)
+         ========================================================= -->
+    <section id="standby-screen" class="standby-screen">
+      <!-- Logo Lambang Universitas -->
+      <div class="university-emblem">
+        <div class="emblem-glow"></div>
+        <svg class="emblem-svg" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="44" stroke="url(#goldGradient)" stroke-width="3" />
+          <circle cx="50" cy="50" r="39" stroke="url(#goldGradient)" stroke-width="1" stroke-dasharray="3 3" />
+          <polygon points="50,15 58,35 80,35 62,48 69,70 50,56 31,70 38,48 20,35 42,35" fill="url(#goldGradient)" opacity="0.95" />
+          <defs>
+            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fff5c0" />
+              <stop offset="50%" stop-color="#d4af37" />
+              <stop offset="100%" stop-color="#8f6c1a" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- Teks Utama Acara (Bisa Dikustomisasi dari Halaman Operator) -->
+      <div class="standby-titles">
+        <span class="sub-title-event" id="sub-title-event">SIDANG TERBUKA SENAT POLITEKNIK PGRI BANTEN</span>
+        <h1 class="main-title-univ" id="main-title-univ">POLITEKNIK PGRI BANTEN</h1>
+        <p class="ceremony-session" id="ceremony-session">WISUDA KE-10 PROGRAM DIPLOMA TAHUN 2026</p>
+      </div>
+
+      <!-- Jam Digital Realtime & Tanggal -->
+      <div class="standby-clock-box">
+        <div id="live-clock-time" class="live-time">09:00:00 WIB</div>
+        <div id="live-clock-date" class="live-date">Memuat tanggal...</div>
+      </div>
+
+      <div class="standby-footer-instruction">
+        <span>✨</span>
+        <span id="standby-footer-msg">Selamat Datang Para Wisudawan & Tamu Undangan Wisuda Ke-10 Politeknik PGRI Banten</span>
+        <span>✨</span>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         2. MODE TAMPILAN WISUDAWAN (Saat Barcode Di-Scan Oleh Operator)
+         ========================================================= -->
+    <section id="student-showcase" class="student-showcase hidden">
+      <div class="showcase-card" id="showcase-card">
+        <!-- Foto Wisudawan dengan Frame Emas & Ambient Light -->
+        <div class="photo-frame-wrapper" id="photo-wrapper">
+          <div class="photo-ambient-light" id="photo-ambient"></div>
+          <div class="photo-outer-ring">
+            <img id="disp-photo" class="student-main-photo" src="" alt="Foto Wisudawan" onerror="this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500'">
+          </div>
+        </div>
+
+        <!-- Detail Data Wisudawan -->
+        <div class="student-meta-details">
+          <!-- Tag Fakultas / Kampus -->
+          <div class="faculty-tag" id="disp-faculty">
+            POLITEKNIK PGRI BANTEN
+          </div>
+
+          <!-- Nama Lengkap & Gelar (Opsional) -->
+          <div id="disp-name-wrapper">
+            <h2 class="student-grand-name" id="disp-name">
+              Ahmad Fauzi Rahman, A.Md.T.
+            </h2>
+          </div>
+
+          <!-- Program Studi (Opsional) -->
+          <div class="study-program-name" id="disp-prodi-wrapper">
+            <span id="disp-prodi">D3 Teknik Mesin</span>
+          </div>
+
+          <!-- Informasi Tempat Bekerja (Opsional) -->
+          <div class="workplace-badge" id="disp-kerja-box">
+            <span class="work-icon">🏢</span>
+            <div class="work-info">
+              <span class="work-label">SUDAH BEKERJA DI:</span>
+              <strong class="work-company" id="disp-kerja">PT Krakatau Steel (Persero) Tbk</strong>
+            </div>
+          </div>
+
+          <!-- Highlight Metric: NIM, IPK, Predikat -->
+          <div class="highlights-grid">
+            <div class="highlight-box" id="disp-nim-box">
+              <span class="hl-label">Nomor Induk Mahasiswa</span>
+              <span class="hl-value" id="disp-nim">202111001</span>
+            </div>
+
+            <div class="highlight-box" id="disp-ipk-box">
+              <span class="hl-label">Indeks Prestasi (IPK)</span>
+              <span class="hl-value" id="disp-ipk" style="color: #67e8f9;">3.88</span>
+            </div>
+
+            <div class="highlight-box cumlaude-box" id="disp-predikat-box">
+              <span class="hl-label">Predikat Kelulusan</span>
+              <span class="hl-value cumlaude-text" id="disp-predikat-text">
+                ★ DENGAN PUJIAN (CUM LAUDE) ★
+              </span>
+            </div>
+          </div>
+
+          <!-- Detail Tambahan: Orang Tua, Asal, Skripsi -->
+          <div class="secondary-details">
+            <div class="detail-line" id="disp-parents-line">
+              <strong>Putra / Putri Dari:</strong>
+              <span id="disp-parents">-</span>
+            </div>
+            <div class="detail-line" id="disp-origin-line">
+              <strong>Asal Daerah:</strong>
+              <span id="disp-origin">-</span>
+            </div>
+            <div class="detail-line" id="disp-thesis-line" style="align-items: flex-start;">
+              <strong>Karya Ilmiah:</strong>
+              <span id="disp-thesis" class="thesis-line">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Bar Auto Standby Timer -->
+        <div class="display-timer-bar" id="disp-timer-bar"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal Kamera Scan Khusus Layar Display (Opsional) -->
+  <div id="display-cam-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 1rem;">
+    <div style="background: #10192d; border: 2px solid #d4af37; border-radius: 16px; padding: 1.5rem; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
+      <h3 style="color: #f7e394; font-family: var(--font-serif); margin-bottom: 0.5rem;">📷 Arahkan Barcode / QR ke Kamera</h3>
+      <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;">Posisikan barcode atau QR code di depan kamera laptop/webcam</p>
+      <div id="display-cam-reader" style="width: 100%; border-radius: 10px; overflow: hidden; background: #000;"></div>
+      <button type="button" id="btn-close-display-cam" class="btn btn-secondary" style="margin-top: 1rem; width: 100%;">
+        Tutup Kamera
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Tes / Simulasi Scan Barcode di Halaman Display -->
+  <div id="display-test-scan-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: #10192d; border: 2px solid #d4af37; border-radius: 16px; padding: 1.5rem; max-width: 480px; width: 92%; box-shadow: 0 20px 50px rgba(0,0,0,0.9); color: #fff;">
+      <h3 style="color: #f7e394; font-family: var(--font-serif); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🔍</span> Tes Scan Barcode / NIM Langsung
+      </h3>
+      <p style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 1rem;">
+        Ketik NIM mahasiswa atau tembak alat scan barcode fisik di kotak ini:
+      </p>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <input type="text" id="manual-scan-input" placeholder="Contoh: 202111001" style="flex: 1; padding: 0.65rem 1rem; border-radius: 8px; border: 1px solid #d4af37; background: #0b132b; color: #fff; font-size: 1rem; font-family: monospace; outline: none;">
+        <button type="button" id="btn-submit-manual-scan" class="btn btn-gold" style="padding: 0.65rem 1.25rem;">
+          Scan!
+        </button>
+      </div>
+      <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.5rem;">Pilih cepat data mahasiswa untuk dicoba:</div>
+      <div id="quick-scan-student-chips" style="display: flex; flex-wrap: wrap; gap: 0.4rem; max-height: 140px; overflow-y: auto; margin-bottom: 1rem;"></div>
+      <button type="button" id="btn-close-test-scan" class="btn btn-secondary" style="width: 100%;">
+        Tutup
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/audio-synth.js"></script>
+  <script src="js/scanner-helper.js"></script>
+  <script src="js/sync-client.js"></script>
+  <script src="js/display.js"></script>
+</body>
+</html>

@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biodata Wisudawan & Pratinjau Layar Display - Politeknik PGRI Banten</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/display.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <!-- CDN Barcode & QR Code -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <!-- Socket.io -->
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      background-color: #080e1c;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 10% 40%, rgba(30, 58, 138, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 90% 70%, rgba(16, 185, 129, 0.15) 0%, transparent 50%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+      font-family: var(--font-sans);
+    }
+
+    .biodata-container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 4rem 1rem;
+    }
+
+    /* Top Bar Header */
+    .bio-header {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      background: linear-gradient(180deg, rgba(16, 25, 45, 0.8) 0%, rgba(10, 16, 32, 0.95) 100%);
+      border: 1px solid var(--border-gold);
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bio-header::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--gold-gradient);
+    }
+
+    .bio-emblem {
+      width: 55px;
+      height: 55px;
+      margin: 0 auto 0.75rem auto;
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--border-gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+
+    .bio-univ-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--gold-300);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .bio-sub-title {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+    }
+
+    /* Search selector if NIM not in URL */
+    .bio-search-box {
+      background: rgba(16, 25, 45, 0.7);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .bio-search-input {
+      flex: 1;
+      min-width: 200px;
+      background: #060b14;
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    /* Main Student Profile Card */
+    .bio-profile-card {
+      background: var(--disp-card-bg, linear-gradient(135deg, rgba(20, 31, 58, 0.95) 0%, rgba(10, 16, 32, 0.98) 100%));
+      border: 2px solid var(--card-border-color, var(--photo-border-color, var(--gold-500)));
+      border-radius: 24px;
+      padding: 2.25rem 1.75rem;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 35px var(--card-glow-color, var(--ambient-color, rgba(212, 175, 55, 0.35)));
+      margin-bottom: 2.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .bio-photo-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem auto;
+    }
+
+    .bio-photo-ambient {
+      position: absolute;
+      inset: -15px;
+      border-radius: inherit;
+      background: radial-gradient(circle, var(--ambient-color, #d4af37) 0%, transparent 70%);
+      filter: blur(var(--ambient-radius, 45px));
+      opacity: var(--ambient-intensity, 0.85);
+      animation: ambientBreathe 3.6s infinite alternate ease-in-out;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .bio-photo-img {
+      position: relative;
+      z-index: 2;
+      width: 170px;
+      height: 170px;
+      object-fit: cover;
+      border: 4px solid #0a1124;
+      border-radius: inherit;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      background-color: #17233f;
+    }
+
+    .bio-student-name {
+      font-family: 'Cinzel', serif;
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--bio-name-color, #ffffff);
+      margin-bottom: 0.5rem;
+      line-height: 1.25;
+      transition: color 0.3s ease;
+    }
+
+    .bio-prodi-title {
+      font-size: 1.15rem;
+      color: var(--bio-prodi-color, var(--gold-300));
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      transition: color 0.3s ease;
+    }
+
+    .bio-badge-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Details Grid */
+    .bio-details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      text-align: left;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(212, 175, 55, 0.25);
+    }
+
+    .bio-field-box {
+      background: rgba(11, 19, 43, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .bio-field-label {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .bio-field-value {
+      font-size: 0.98rem;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* Stage Preview Section */
+    .stage-preview-section {
+      background: linear-gradient(180deg, rgba(16, 25, 45, 0.9) 0%, rgba(8, 14, 28, 0.98) 100%);
+      border: 2px solid var(--border-gold);
+      border-radius: 24px;
+      padding: 2rem 1.5rem;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
+
+    .section-title-wrap {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .section-badge {
+      display: inline-block;
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-300);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-heading {
+      font-family: 'Cinzel', serif;
+      font-size: 1.5rem;
+      color: #ffffff;
+      margin: 0;
+    }
+
+    .section-desc {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-top: 0.4rem;
+    }
+
+    /* Stage Live Screen Mockup */
+    .stage-screen-mockup {
+      background: #050a14;
+      border: 3px solid #1e293b;
+      border-radius: 18px;
+      padding: 1.75rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 50px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.8);
+      margin-bottom: 1.5rem;
+    }
+
+    .stage-screen-mockup::before {
+      content: '● VIDEOTRON PANGGUNG RESMI';
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #10b981;
+      letter-spacing: 0.08em;
+    }
+
+    /* Sound Simulation Bar */
+    .sound-sim-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    /* QR & Barcode Section */
+    .barcode-section {
+      background: #ffffff;
+      color: #0b132b;
+      border-radius: 20px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.5);
+      margin-bottom: 2rem;
+    }
+
+    .barcode-section h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.35rem;
+      color: #0b132b;
+      margin-bottom: 0.25rem;
+    }
+
+    .barcode-display-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 14px;
+    }
+
+    .action-links-row {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="biodata-container">
+    <!-- 1. Header Resmi -->
+    <header class="bio-header">
+      <div class="bio-emblem">🎓</div>
+      <div class="bio-univ-title" id="bio-univ-title">POLITEKNIK PGRI BANTEN</div>
+      <div class="bio-sub-title" id="bio-session-title">WISUDA KE-10 TAHUN 2026 • PORTAL RESMI WISUDAWAN</div>
+    </header>
+
+    <!-- 2. Search / Ganti Mahasiswa (jika tidak ada ?nim= di URL) -->
+    <div class="bio-search-box" id="search-selector-box">
+      <span style="font-size: 1.2rem;">🔍</span>
+      <input type="text" id="student-query-input" class="bio-search-input" placeholder="Cari NIM atau Nama Wisudawan...">
+      <button type="button" class="btn btn-gold btn-sm" id="btn-search-student">Cari Biodata</button>
+      <div id="search-suggestions" style="width: 100%; display: none; margin-top: 0.5rem; max-height: 150px; overflow-y: auto; background: #070d18; border: 1px solid var(--border-gold); border-radius: 8px; padding: 0.5rem;"></div>
+    </div>
+
+    <!-- 3. Profil Resmi Mahasiswa -->
+    <main id="student-profile-area">
+      <div class="bio-profile-card" id="bio-main-card">
+        <!-- Foto Wisudawan dengan Efek Ambient Light -->
+        <div class="bio-photo-wrapper shape-circle" id="bio-photo-wrapper">
+          <div class="bio-photo-ambient" id="bio-photo-ambient"></div>
+          <img id="bio-photo-img" class="bio-photo-img" src="" alt="Foto Wisudawan" onerror="this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300'">
+        </div>
+
+        <!-- Nama & Gelar -->
+        <h1 class="bio-student-name" id="bio-name">Memuat nama wisudawan...</h1>
+        <div class="bio-prodi-title" id="bio-prodi">Program Studi -</div>
+
+        <!-- Badges: NIM, Status, Predikat -->
+        <div class="bio-badge-row">
+          <span class="badge badge-present" style="font-size: 0.85rem; padding: 0.4rem 0.9rem;" id="bio-status-badge">
+            ✅ PESERTA RESMI WISUDA
+          </span>
+          <span class="badge" style="background: rgba(0,0,0,0.6); color: #facc15; border: 1px solid #facc15; font-size: 0.85rem; padding: 0.4rem 0.9rem;" id="bio-nim-badge">
+            NIM: -
+          </span>
+          <span class="badge badge-cumlaude" style="font-size: 0.85rem; padding: 0.4rem 0.9rem;" id="bio-cumlaude-badge">
+            ★ CUM LAUDE
+          </span>
+        </div>
+
+        <!-- Tempat Bekerja (Opsional) -->
+        <div id="bio-kerja-box" style="margin-bottom: 1.25rem;">
+          <div class="workplace-badge" style="margin: 0 auto;">
+            <span class="work-icon">🏢</span>
+            <div class="work-info">
+              <span class="work-label">SUDAH BEKERJA DI:</span>
+              <strong class="work-company" id="bio-kerja">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid Detail Data Diri -->
+        <div class="bio-details-grid">
+          <div class="bio-field-box">
+            <span class="bio-field-label">Nomor Induk Mahasiswa</span>
+            <span class="bio-field-value" id="field-nim" style="color: #67e8f9; font-family: monospace;">-</span>
+          </div>
+
+          <div class="bio-field-box">
+            <span class="bio-field-label">Indeks Prestasi Kumulatif (IPK)</span>
+            <span class="bio-field-value" id="field-ipk" style="color: #fde047;">-</span>
+          </div>
+
+          <div class="bio-field-box">
+            <span class="bio-field-label">Predikat Kelulusan</span>
+            <span class="bio-field-value" id="field-predikat">-</span>
+          </div>
+
+          <div class="bio-field-box">
+            <span class="bio-field-label">Fakultas / Kampus</span>
+            <span class="bio-field-value" id="field-fakultas">Politeknik PGRI Banten</span>
+          </div>
+
+          <div class="bio-field-box" id="box-parents">
+            <span class="bio-field-label">Putra / Putri Dari</span>
+            <span class="bio-field-value" id="field-orangtua">-</span>
+          </div>
+
+          <div class="bio-field-box" id="box-origin">
+            <span class="bio-field-label">Asal Daerah</span>
+            <span class="bio-field-value" id="field-asal">-</span>
+          </div>
+
+          <div class="bio-field-box" id="box-thesis" style="grid-column: 1 / -1;">
+            <span class="bio-field-label">Karya Ilmiah / Judul Skripsi</span>
+            <span class="bio-field-value" id="field-skripsi" style="font-style: italic; font-size: 0.92rem;">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Simulasi Layar Panggung Wisuda (Stage Display Simulation) -->
+      <section class="stage-preview-section">
+        <div class="section-title-wrap">
+          <span class="section-badge">🎬 Simulasi Videotron</span>
+          <h2 class="section-heading">Pratinjau Layar Panggung Wisuda</h2>
+          <p class="section-desc">
+            Inilah tampilan yang akan muncul di layar besar saat gelang/kartu barcode Anda di-scan oleh panitia di panggung:
+          </p>
+        </div>
+
+        <!-- Stage Mockup Frame -->
+        <div class="stage-screen-mockup">
+          <div class="showcase-card layout-centered" id="mockup-stage-card" style="margin: 0 auto; box-shadow: none; border-color: var(--border-gold);">
+            <!-- Foto dengan Ambient Light -->
+            <div class="photo-frame-wrapper shape-circle" id="mockup-photo-wrapper">
+              <div class="photo-ambient-light anim-breathe" id="mockup-photo-ambient"></div>
+              <div class="photo-outer-ring">
+                <img id="mockup-disp-photo" class="student-main-photo" src="" alt="Foto Panggung" onerror="this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300'">
+              </div>
+            </div>
+
+            <!-- Detail Panggung -->
+            <div class="student-meta-details" style="align-items: center; text-align: center;">
+              <div class="faculty-tag" id="mockup-disp-faculty" style="justify-content: center;">
+                POLITEKNIK PGRI BANTEN
+              </div>
+              <h2 class="student-grand-name" id="mockup-disp-name" style="font-size: 1.8rem; text-align: center;">
+                Nama Wisudawan
+              </h2>
+              <div class="study-program-name" id="mockup-disp-prodi-wrapper" style="justify-content: center;">
+                <span id="mockup-disp-prodi">Program Studi</span>
+              </div>
+              <div class="workplace-badge" id="mockup-disp-kerja-box" style="margin: 0 auto;">
+                <span class="work-icon">🏢</span>
+                <div class="work-info">
+                  <span class="work-label">SUDAH BEKERJA DI:</span>
+                  <strong class="work-company" id="mockup-disp-kerja">-</strong>
+                </div>
+              </div>
+              <div class="highlights-grid" style="justify-content: center; width: 100%;">
+                <div class="highlight-box" id="mockup-box-nim">
+                  <span class="hl-label">NIM</span>
+                  <span class="hl-value" id="mockup-disp-nim" style="font-size: 1.1rem;">-</span>
+                </div>
+                <div class="highlight-box" id="mockup-box-ipk">
+                  <span class="hl-label">IPK</span>
+                  <span class="hl-value" id="mockup-disp-ipk" style="color: #67e8f9; font-size: 1.1rem;">-</span>
+                </div>
+                <div class="highlight-box cumlaude-box" id="mockup-box-predikat">
+                  <span class="hl-label">Predikat</span>
+                  <span class="hl-value cumlaude-text" id="mockup-disp-predikat" style="font-size: 0.95rem;">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tombol Audio Simulasi -->
+        <div class="sound-sim-bar">
+          <button type="button" class="btn btn-gold" id="btn-play-stage-sim">
+            🔊 Putar Suara Lonceng & Pembacaan Nama Saya
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-trigger-to-display">
+            ⚡ Tes Kirim Tampilan ke Layar Display Panggung
+          </button>
+        </div>
+      </section>
+
+      <!-- 5. Bagian Kode Barcode & QR Code Gelang -->
+      <section class="barcode-section">
+        <span class="badge badge-present" style="font-size: 0.75rem; margin-bottom: 0.5rem;">TIKET RESMI SCAN</span>
+        <h3>🎫 Barcode & QR Code Gelang Wisuda Anda</h3>
+        <p style="font-size: 0.85rem; color: #64748b; margin: 0;">
+          Tunjukkan QR Code ini di layar HP Anda kepada panitia di pintu masuk atau panggung wisuda:
+        </p>
+
+        <div class="barcode-display-box">
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">QR CODE (SCAN KAMERA HP / SCANNER 2D)</div>
+            <canvas id="canvas-my-qr" style="border: 2px solid #000; border-radius: 8px;"></canvas>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">BARCODE 1D (ALAT SCANNER LASER GELANG)</div>
+            <svg id="svg-my-barcode" style="background: #fff; padding: 4px; border: 1px solid #cbd5e1; border-radius: 6px;"></svg>
+          </div>
+        </div>
+
+        <div class="action-links-row">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-download-my-qr">
+            💾 Simpan Gambar QR Code ke Galeri HP
+          </button>
+          <a id="link-view-wristband" href="gelang.html" target="_blank" class="btn btn-gold btn-sm">
+            🎫 Lihat Template Gelang Barcode Saya ↗
+          </a>
+          <a href="index.html" class="btn btn-secondary btn-sm">
+            🏠 Kembali ke Homepage Wisuda
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/audio-synth.js"></script>
+  <script src="js/scanner-helper.js"></script>
+  <script src="js/sync-client.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const sync = new WisudaSyncClient('biodata');
+      let studentsList = [];
+      let currentStudent = null;
+      let appSettings = {};
+
+      // URL Query params
+      const urlParams = new URLSearchParams(window.location.search);
+      let targetNim = urlParams.get('nim') || urlParams.get('id') || '';
+
+      // 1. Fetch data
+      async function loadInitialData() {
+        try {
+          const res = await fetch('/api/students');
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            studentsList = json.data;
+          }
+        } catch (e) {
+          try {
+            const fb = await fetch('./data/students.json');
+            studentsList = await fb.json();
+          } catch (err) {}
+        }
+
+        try {
+          const setRes = await fetch('/api/settings');
+          const setJson = await setRes.json();
+          if (setJson.success && setJson.data) {
+            appSettings = setJson.data;
+            applySettingsToMockup(appSettings);
+          }
+        } catch (e) {}
+
+        if (targetNim) {
+          const found = WisudaScannerHelper.findStudent(studentsList, targetNim);
+          if (found) {
+            renderStudent(found);
+          } else {
+            alert(`Wisudawan dengan NIM "${targetNim}" tidak ditemukan dalam sistem.`);
+            if (studentsList.length > 0) renderStudent(studentsList[0]);
+          }
+        } else if (studentsList.length > 0) {
+          renderStudent(studentsList[0]);
+        }
+      }
+
+      function applySettingsToMockup(settings) {
+        if (!settings) return;
+        const univTitle = document.getElementById('bio-univ-title');
+        const sessionTitle = document.getElementById('bio-session-title');
+        if (univTitle && settings.univName) univTitle.textContent = settings.univName;
+        if (sessionTitle && settings.sessionName) sessionTitle.textContent = `${settings.sessionName} • PORTAL RESMI WISUDAWAN`;
+
+        const mockupCard = document.getElementById('mockup-stage-card');
+        const mockupPhotoWrap = document.getElementById('mockup-photo-wrapper');
+        const bioPhotoWrap = document.getElementById('bio-photo-wrapper');
+        const color = settings.photoBorderColor || '#d4af37';
+        const ambColor = settings.ambientLightColor || color;
+        const ambRadius = settings.ambientLightRadius || 60;
+        const ambIntensity = settings.ambientLightIntensity || 0.75;
+        const shape = settings.photoShape || 'circle';
+
+        function hexToRgbaStr(hex, alpha) {
+          if (!hex || typeof hex !== 'string') return `rgba(212, 175, 55, ${alpha})`;
+          let c = hex.replace('#', '').trim();
+          if (c.length === 3) c = c.split('').map(x => x + x).join('');
+          if (c.length !== 6) return `rgba(212, 175, 55, ${alpha})`;
+          const num = parseInt(c, 16);
+          return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+        }
+
+        const bg1 = settings.dispBgColor1 || '#152243';
+        const bg2 = settings.dispBgColor2 || '#050814';
+        const cardBg = settings.dispCardBg || '#10192d';
+        const cardOpacity = settings.dispCardOpacity !== undefined ? parseFloat(settings.dispCardOpacity) : 0.94;
+        const stageBorder = settings.stageBorderColor || '#d4af37';
+        const cardBorder = settings.cardBorderColor || '#d4af37';
+        const cardGlow = settings.cardGlowColor || cardBorder;
+
+        const bioName = settings.bioNameColor || '#ffffff';
+        const bioProdi = settings.bioProdiColor || '#93c5fd';
+        const bioFaculty = settings.bioFacultyColor || '#f7e394';
+        const bioNim = settings.bioNimColor || '#ffffff';
+        const bioIpk = settings.bioIpkColor || '#67e8f9';
+        const bioPredikat = settings.bioPredikatColor || '#d4af37';
+        const bioDetail = settings.bioDetailColor || '#cbd5e1';
+
+        const root = document.documentElement;
+        root.style.setProperty('--photo-border-color', color);
+        root.style.setProperty('--ambient-color', ambColor);
+        root.style.setProperty('--ambient-radius', `${ambRadius}px`);
+        root.style.setProperty('--ambient-intensity', ambIntensity);
+        root.style.setProperty('--disp-bg-custom', `radial-gradient(circle at 50% 30%, ${bg1} 0%, ${bg2} 100%)`);
+        root.style.setProperty('--disp-card-bg', `linear-gradient(135deg, ${hexToRgbaStr(cardBg, cardOpacity)} 0%, ${hexToRgbaStr(bg2, Math.min(1, cardOpacity + 0.04))} 100%)`);
+        root.style.setProperty('--stage-border-color', stageBorder);
+        root.style.setProperty('--stage-glow-color', hexToRgbaStr(stageBorder, 0.25));
+        root.style.setProperty('--card-border-color', cardBorder);
+        root.style.setProperty('--card-glow-color', hexToRgbaStr(cardGlow, 0.45));
+        root.style.setProperty('--bio-name-color', bioName);
+        root.style.setProperty('--bio-prodi-color', bioProdi);
+        root.style.setProperty('--bio-faculty-color', bioFaculty);
+        root.style.setProperty('--bio-faculty-bg', hexToRgbaStr(bioFaculty, 0.15));
+        root.style.setProperty('--bio-nim-color', bioNim);
+        root.style.setProperty('--bio-ipk-color', bioIpk);
+        root.style.setProperty('--bio-predikat-color', bioPredikat);
+        root.style.setProperty('--bio-predikat-glow', hexToRgbaStr(bioPredikat, 0.35));
+        root.style.setProperty('--bio-detail-color', bioDetail);
+
+        if (mockupPhotoWrap) {
+          mockupPhotoWrap.className = `photo-frame-wrapper shape-${shape} effect-${settings.photoRingEffect || 'rotating'}`;
+        }
+        if (bioPhotoWrap) {
+          bioPhotoWrap.className = `bio-photo-wrapper shape-${shape}`;
+        }
+
+        // Visibilitas elemen mockup
+        const mFaculty = document.getElementById('mockup-disp-faculty');
+        const mKerja = document.getElementById('mockup-disp-kerja-box');
+        const mNim = document.getElementById('mockup-box-nim');
+        const mIpk = document.getElementById('mockup-box-ipk');
+        const mPredikat = document.getElementById('mockup-box-predikat');
+
+        if (mFaculty) mFaculty.style.display = settings.showFaculty !== false ? 'inline-flex' : 'none';
+        if (mNim) mNim.style.display = settings.showNim !== false ? 'flex' : 'none';
+        if (mIpk) mIpk.style.display = settings.showIpk !== false ? 'flex' : 'none';
+        if (mPredikat) mPredikat.style.display = settings.showPredikat !== false ? 'flex' : 'none';
+      }
+
+      sync.on('settings_updated', (settings) => {
+        applySettingsToMockup(settings);
+      });
+
+      function renderStudent(student) {
+        if (!student) return;
+        currentStudent = student;
+
+        // Render Biodata Utama
+        document.getElementById('bio-name').textContent = student.nama;
+        document.getElementById('bio-prodi').textContent = student.prodi ? `Program Studi ${student.prodi}` : '-';
+        document.getElementById('bio-photo-img').src = student.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300';
+        document.getElementById('bio-nim-badge').textContent = `NIM: ${student.nim}`;
+
+        const cumlaudeBadge = document.getElementById('bio-cumlaude-badge');
+        if (cumlaudeBadge) {
+          if (student.isCumlaude) {
+            cumlaudeBadge.style.display = 'inline-block';
+            cumlaudeBadge.textContent = '★ CUM LAUDE';
+          } else {
+            cumlaudeBadge.style.display = 'inline-block';
+            cumlaudeBadge.className = 'badge badge-present';
+            cumlaudeBadge.textContent = student.predikat || 'LULUS';
+          }
+        }
+
+        // Tempat Kerja
+        const kerjaBox = document.getElementById('bio-kerja-box');
+        const kerjaEl = document.getElementById('bio-kerja');
+        if (student.tempatKerja && student.tempatKerja !== '-') {
+          if (kerjaBox) kerjaBox.style.display = 'block';
+          if (kerjaEl) kerjaEl.textContent = student.tempatKerja;
+        } else {
+          if (kerjaBox) kerjaBox.style.display = 'none';
+        }
+
+        // Details Grid
+        document.getElementById('field-nim').textContent = student.nim;
+        document.getElementById('field-ipk').textContent = student.ipk || '-';
+        document.getElementById('field-predikat').textContent = student.predikat || '-';
+        document.getElementById('field-fakultas').textContent = student.fakultas || 'Politeknik PGRI Banten';
+        document.getElementById('field-orangtua').textContent = student.orangTua || '-';
+        document.getElementById('field-asal').textContent = student.asalDaerah || '-';
+        document.getElementById('field-skripsi').textContent = student.judulSkripsi ? `"${student.judulSkripsi}"` : '-';
+
+        // Render Stage Mockup Card
+        document.getElementById('mockup-disp-photo').src = student.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300';
+        document.getElementById('mockup-disp-name').textContent = student.nama;
+        document.getElementById('mockup-disp-prodi').textContent = student.prodi ? `Program Studi ${student.prodi}` : '-';
+        document.getElementById('mockup-disp-nim').textContent = student.nim;
+        document.getElementById('mockup-disp-ipk').textContent = student.ipk || '-';
+        
+        const mPredikat = document.getElementById('mockup-disp-predikat');
+        if (mPredikat) {
+          mPredikat.textContent = student.isCumlaude ? '★ DENGAN PUJIAN (CUM LAUDE) ★' : (student.predikat || 'MEMUASKAN');
+        }
+
+        const mKerjaBox = document.getElementById('mockup-disp-kerja-box');
+        const mKerjaText = document.getElementById('mockup-disp-kerja');
+        if (student.tempatKerja && student.tempatKerja !== '-') {
+          if (mKerjaBox) mKerjaBox.style.display = 'inline-flex';
+          if (mKerjaText) mKerjaText.textContent = student.tempatKerja;
+        } else {
+          if (mKerjaBox) mKerjaBox.style.display = 'none';
+        }
+
+        // Update link gelang
+        const linkWristband = document.getElementById('link-view-wristband');
+        if (linkWristband) {
+          linkWristband.href = `gelang.html?nim=${student.nim}`;
+        }
+
+        // Generate Barcode & QR Code
+        generateCodes(student);
+      }
+
+      function generateCodes(student) {
+        if (!student) return;
+
+        // 1. Barcode Code128 (Format Fisik NIM Langsung)
+        if (typeof JsBarcode !== 'undefined') {
+          try {
+            JsBarcode('#svg-my-barcode', student.nim.toString(), {
+              format: "CODE128",
+              width: 1.6,
+              height: 48,
+              displayValue: true,
+              fontSize: 12,
+              lineColor: "#000000",
+              margin: 4
+            });
+          } catch (e) {}
+        }
+
+        // 2. QR Code (Mengarah langsung ke URL Biodata ini sehingga bisa discan kamera HP!)
+        if (typeof QRCode !== 'undefined') {
+          const qrCanvas = document.getElementById('canvas-my-qr');
+          if (qrCanvas) {
+            // URL Absolut menuju biodata mahasiswa ini
+            const fullUrl = `${window.location.origin}/biodata.html?nim=${student.nim}`;
+            QRCode.toCanvas(qrCanvas, fullUrl, {
+              width: 150,
+              margin: 2,
+              errorCorrectionLevel: 'H',
+              color: {
+                dark: "#000000",
+                light: "#ffffff"
+              }
+            }, (err) => {});
+          }
+        }
+      }
+
+      // 4. Download QR Code PNG
+      const btnDownloadQr = document.getElementById('btn-download-my-qr');
+      if (btnDownloadQr) {
+        btnDownloadQr.addEventListener('click', () => {
+          if (!currentStudent) return;
+          const canvas = document.getElementById('canvas-my-qr');
+          if (!canvas) return;
+
+          const link = document.createElement('a');
+          link.download = `QR_Wisuda_PGRI_${currentStudent.nim}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+      }
+
+      // 5. Putar Audio Simulasi Layar Panggung
+      const btnPlayStageSim = document.getElementById('btn-play-stage-sim');
+      if (btnPlayStageSim) {
+        btnPlayStageSim.addEventListener('click', () => {
+          if (!currentStudent) return;
+          window.GradAudio.ensureAudioContext();
+
+          if (currentStudent.isCumlaude) {
+            window.GradAudio.playCumLaudeFanfare();
+          } else {
+            window.GradAudio.playCeremonyChime();
+          }
+
+          const template = appSettings.ttsTemplate || '{nama}. Program Studi {prodi}. Predikat {predikat}.';
+          window.GradAudio.speakStudent(currentStudent, template);
+        });
+      }
+
+      // 6. Tes Kirim Tampilan ke Layar Display
+      const btnTriggerDisplay = document.getElementById('btn-trigger-to-display');
+      if (btnTriggerDisplay) {
+        btnTriggerDisplay.addEventListener('click', () => {
+          if (!currentStudent) return;
+          sync.sendShowStudent(currentStudent, { settings: appSettings });
+          alert(`✅ Tampilan wisudawan "${currentStudent.nama}" telah berhasil dikirim ke Layar Panggung Display!`);
+        });
+      }
+
+      // 7. Search box interaction
+      const searchInput = document.getElementById('student-query-input');
+      const btnSearch = document.getElementById('btn-search-student');
+      const suggestionsBox = document.getElementById('search-suggestions');
+
+      function doSearch() {
+        const q = (searchInput.value || '').trim();
+        if (!q) return;
+        const found = WisudaScannerHelper.findStudent(studentsList, q);
+        if (found) {
+          renderStudent(found);
+          if (suggestionsBox) suggestionsBox.style.display = 'none';
+          // Update URL tanpa reload
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('nim', found.nim);
+          window.history.pushState({}, '', newUrl);
+        } else {
+          alert(`Mahasiswa dengan kata kunci "${q}" tidak ditemukan.`);
+        }
+      }
+
+      if (btnSearch) btnSearch.addEventListener('click', doSearch);
+      if (searchInput) {
+        searchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') doSearch();
+        });
+
+        searchInput.addEventListener('input', (e) => {
+          const val = e.target.value.toLowerCase().trim();
+          if (val.length >= 2 && suggestionsBox) {
+            const matches = studentsList.filter(s => 
+              s.nim.toString().includes(val) || 
+              s.nama.toLowerCase().includes(val)
+            ).slice(0, 5);
+
+            if (matches.length > 0) {
+              suggestionsBox.style.display = 'block';
+              suggestionsBox.innerHTML = matches.map(m => `
+                <div class="sugg-item" data-nim="${m.nim}" style="padding: 0.4rem 0.6rem; cursor: pointer; border-radius: 4px; display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <strong>${m.nama}</strong>
+                  <span style="color: #facc15; font-family: monospace;">${m.nim}</span>
+                </div>
+              `).join('');
+
+              suggestionsBox.querySelectorAll('.sugg-item').forEach(item => {
+                item.addEventListener('click', () => {
+                  const nim = item.getAttribute('data-nim');
+                  const found = studentsList.find(s => s.nim.toString() === nim);
+                  if (found) {
+                    renderStudent(found);
+                    suggestionsBox.style.display = 'none';
+                    searchInput.value = found.nim;
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('nim', found.nim);
+                    window.history.pushState({}, '', newUrl);
+                  }
+                });
+              });
+            } else {
+              suggestionsBox.style.display = 'none';
+            }
+          } else if (suggestionsBox) {
+            suggestionsBox.style.display = 'none';
+          }
+        });
+      }
+
+      // Initial run
+      await loadInitialData();
+    });
+  </script>
+</body>
+</html>

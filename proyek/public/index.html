@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wisuda Ke-10 Politeknik PGRI Banten - Portal Resmi & Cek QR Code Wisudawan</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Barcode & QR Code Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    .home-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+
+    /* Hero Section */
+    .hero-section {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      position: relative;
+    }
+
+    .hero-emblem {
+      width: 110px;
+      height: 110px;
+      background: linear-gradient(135deg, #101c3d 0%, #1e293b 100%);
+      border: 3px solid var(--gold-500);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.2rem;
+      box-shadow: 0 0 35px rgba(212, 175, 55, 0.45);
+      position: relative;
+    }
+
+    .hero-emblem::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border: 1px dashed rgba(212, 175, 55, 0.5);
+      border-radius: 50%;
+      animation: rotateEmblem 30s linear infinite;
+    }
+
+    @keyframes rotateEmblem {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--gold-500);
+      color: var(--gold-300);
+      padding: 0.45rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .hero-title {
+      font-family: var(--font-serif);
+      font-size: 2.85rem;
+      font-weight: 900;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+      max-width: 900px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-subtitle {
+      color: #cbd5e1;
+      font-size: 1.15rem;
+      max-width: 750px;
+      line-height: 1.6;
+    }
+
+    .hero-session-tag {
+      font-family: 'Cinzel', serif;
+      color: #93c5fd;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    /* Search & Check QR Section */
+    .qr-search-card {
+      background: linear-gradient(135deg, rgba(20, 31, 58, 0.95) 0%, rgba(10, 16, 32, 0.98) 100%);
+      border: 2px solid var(--gold-500);
+      border-radius: 24px;
+      padding: 2.5rem;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6), var(--shadow-gold);
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+    }
+
+    .search-card-header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .search-card-header h2 {
+      font-family: var(--font-serif);
+      font-size: 1.65rem;
+      color: var(--gold-300);
+    }
+
+    .search-card-header p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      max-width: 700px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .search-huge-input {
+      width: 100%;
+      padding: 1.1rem 1.25rem 1.1rem 3.5rem;
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid var(--gold-400);
+      border-radius: 16px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      outline: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .search-huge-input:focus {
+      border-color: #fef08a;
+      box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    .search-icon-big {
+      position: absolute;
+      left: 1.25rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.4rem;
+      color: var(--gold-400);
+      pointer-events: none;
+    }
+
+    /* Student Result Card */
+    .search-results-area {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .student-pass-card {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 20px;
+      border: 3px solid #d4af37;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 200px 1fr 220px;
+      position: relative;
+    }
+
+    @media (max-width: 900px) {
+      .student-pass-card {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+    }
+
+    .pass-photo-col {
+      background: #0f172a;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+
+    .pass-photo-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #d4af37;
+    }
+
+    .pass-details-col {
+      padding: 1.5rem 1.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .pass-details-col h3 {
+      font-family: var(--font-serif);
+      font-size: 1.35rem;
+      color: #0f172a;
+      font-weight: 800;
+    }
+
+    .pass-meta {
+      font-size: 0.9rem;
+      color: #475569;
+    }
+
+    .pass-meta strong {
+      color: #0f172a;
+    }
+
+    .pass-kerja-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #10b981;
+      padding: 0.35rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      width: fit-content;
+      margin-top: 0.25rem;
+    }
+
+    .pass-codes-col {
+      background: #f8fafc;
+      border-left: 2px dashed #cbd5e1;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      text-align: center;
+    }
+
+    .pass-qr-box {
+      width: 110px;
+      height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border-radius: 10px;
+      padding: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .pass-qr-box canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .pass-barcode-box svg {
+      max-width: 170px;
+      height: 40px;
+    }
+
+    .pass-actions-footer {
+      grid-column: 1 / -1;
+      background: #f1f5f9;
+      padding: 0.85rem 1.5rem;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    /* Cards Grid Portals */
+    .portal-section-title {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      color: var(--gold-300);
+      text-align: center;
+      margin-bottom: -1rem;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .portal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .portal-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--gold-500);
+      box-shadow: var(--shadow-gold);
+    }
+
+    .card-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-400);
+    }
+
+    .portal-card h3 {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      color: #fff;
+    }
+
+    .portal-card p {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    /* Multi device footer */
+    .network-info-box {
+      background: rgba(16, 25, 45, 0.6);
+      border: 1px dashed var(--border-gold);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="home-container">
+    <!-- Hero Header Wisuda Ke-10 Politeknik PGRI Banten -->
+    <header class="hero-section">
+      <div class="hero-emblem">🎓</div>
+      <div class="hero-badge">★ SIDANG SENAT TERBUKA TAHUN 2026 ★</div>
+      <h1 class="hero-title">WISUDA KE-10 POLITEKNIK PGRI BANTEN</h1>
+      <p class="hero-session-tag">PROGRAM DIPLOMA III (D3) TEKNIK & MANAJEMEN INFORMATIKA</p>
+      <p class="hero-subtitle">
+        Selamat Datang Para Wisudawan/Wisudawati dan Tamu Kehormatan di Sistem Informasi & Pemindaian Barcode Wisuda Ke-10 Politeknik PGRI Banten.
+      </p>
+    </header>
+
+    <!-- =========================================================
+         FITUR UTAMA: CEK & DOWNLOAD QR CODE / GELANG WISUDAWAN
+         ========================================================= -->
+    <section class="qr-search-card">
+      <div class="search-card-header">
+        <h2>🔍 Cek & Download QR Code / Gelang Wisuda Anda</h2>
+        <p>Ketik NIM atau Nama Lengkap Anda di bawah untuk mendapatkan QR Code resmi dan template gelang barcode:</p>
+      </div>
+
+      <div class="search-input-wrapper">
+        <span class="search-icon-big">🔎</span>
+        <input 
+          type="text" 
+          id="home-search-input" 
+          class="search-huge-input" 
+          placeholder="Ketik NIM atau Nama Lengkap Anda... (contoh: 202111001 atau Fauzi)"
+          autocomplete="off"
+        >
+      </div>
+
+      <!-- Area Hasil Pencarian Mahasiswa -->
+      <div id="search-results-area" class="search-results-area">
+        <!-- Render otomatis via JavaScript -->
+      </div>
+    </section>
+
+    <!-- =========================================================
+         PORTAL MENU SISTEM WISUDA
+         ========================================================= -->
+    <h2 class="portal-section-title">✨ Menu & Navigasi Sistem Wisuda</h2>
+
+    <div class="cards-grid">
+      <!-- 1. Template Gelang Barcode -->
+      <div class="portal-card">
+        <div class="card-icon">🎫</div>
+        <h3>1. Template Gelang Barcode</h3>
+        <p>
+          Format gelang acara wisuda berukuran presisi (260mm x 25mm). Siap cetak di kertas A4 / Tyvek gelang, lengkap dengan QR Code, Barcode, nama wisudawan, dan status kerja.
+        </p>
+        <a href="gelang.html" class="btn btn-gold" style="width: 100%;">
+          Buka Template Gelang ↗
+        </a>
+      </div>
+
+      <!-- 2. Layar Tampilan Panggung -->
+      <div class="portal-card">
+        <div class="card-icon">📽️</div>
+        <h3>2. Layar Tampilan Panggung</h3>
+        <p>
+          Halaman visual megah untuk proyektor / videotron panggung utama. Menampilkan wisudawan saat gelang/barcode discan, lengkap dengan lonceng dan ucapan nama otomatis (TTS).
+        </p>
+        <a href="display.html" target="_blank" class="btn btn-gold" style="width: 100%;">
+          Buka Layar Panggung ↗
+        </a>
+      </div>
+
+      <!-- 3. Panel Operator Scan -->
+      <div class="portal-card">
+        <div class="card-icon">🎛️</div>
+        <h3>3. Panel Operator Scan</h3>
+        <p>
+          Halaman untuk panitia pemanggil wisudawan di meja scan. Mendukung pemindai barcode USB/Bluetooth gun fisik, pendaftaran mahasiswa, import CSV, dan pengaturan panggung.
+        </p>
+        <a href="operator.html" target="_blank" class="btn btn-secondary" style="width: 100%;">
+          Buka Panel Operator ↗
+        </a>
+      </div>
+
+      <!-- 4. Cetak Kartu Barcode -->
+      <div class="portal-card">
+        <div class="card-icon">🏷️</div>
+        <h3>4. Kartu Barcode Wisudawan</h3>
+        <p>
+          Kartu identitas tanda peserta wisuda format ID Card standar (portrait), lengkap dengan foto, barcode Code128, dan QR Code untuk pengujian atau cetak ID card fisik.
+        </p>
+        <a href="print-barcode.html" target="_blank" class="btn btn-secondary" style="width: 100%;">
+          Lihat Kartu Barcode ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- Info Jaringan Multi-Perangkat -->
+    <div class="network-info-box">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+        <strong style="color: var(--gold-400); font-size: 0.95rem;">
+          🌐 Akses Jaringan Lokal (WiFi / LAN Aula Wisuda)
+        </strong>
+        <span class="badge badge-present">Server Aktif</span>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">
+        Laptop operator di meja depan dan laptop proyektor panggung dapat saling terhubung tanpa kabel internet melalui jaringan WiFi yang sama menggunakan alamat IP:
+      </p>
+      <div id="network-ip-list" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <code style="background: rgba(0,0,0,0.5); padding: 0.4rem 0.85rem; border-radius: 6px; color: #60a5fa; border: 1px solid rgba(255,255,255,0.1);">
+          http://localhost:3000
+        </code>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allStudents = [];
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/students');
+        const json = await res.json();
+        allStudents = json.data || [];
+      } catch (e) {
+        try {
+          const fb = await fetch('./data/students.json');
+          allStudents = await fb.json();
+        } catch (err) {}
+      }
+
+      // Ambil Info IP Jaringan
+      try {
+        const infoRes = await fetch('/api/info');
+        const infoJson = await infoRes.json();
+        const ipContainer = document.getElementById('network-ip-list');
+        if (ipContainer && infoJson.localIPs && infoJson.localIPs.length > 0) {
+          ipContainer.innerHTML = `
+            <code style="background: rgba(0,0,0,0.5); padding: 0.4rem 0.85rem; border-radius: 6px; color: #60a5fa; border: 1px solid rgba(255,255,255,0.1);">
+              http://localhost:${infoJson.port} (Lokal)
+            </code>
+          ` + infoJson.localIPs.map(ip => `
+            <code style="background: rgba(0,0,0,0.5); padding: 0.4rem 0.85rem; border-radius: 6px; color: #34d399; border: 1px solid rgba(255,255,255,0.1);">
+              http://${ip}:${infoJson.port} (WiFi / LAN)
+            </code>
+          `).join('');
+        }
+      } catch (e) {}
+
+      // Render pertama kali (tampilkan beberapa mahasiswa contoh)
+      renderSearchResults('');
+    }
+
+    function renderSearchResults(query) {
+      const container = document.getElementById('search-results-area');
+      if (!container) return;
+
+      const q = query.toLowerCase().trim();
+
+      let matched = [];
+      if (!q) {
+        // Tampilkan 2 wisudawan pertama sebagai contoh
+        matched = allStudents.slice(0, 2);
+      } else {
+        matched = allStudents.filter(s => 
+          (s.nama && s.nama.toLowerCase().includes(q)) ||
+          (s.nim && s.nim.toString().toLowerCase().includes(q)) ||
+          (s.prodi && s.prodi.toLowerCase().includes(q))
+        );
+      }
+
+      if (matched.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 2rem; background: rgba(0,0,0,0.3); border-radius: 14px; border: 1px dashed var(--border-gold); color: #cbd5e1;">
+            ⚠️ Tidak ditemukan wisudawan dengan NIM atau Nama "<strong>${query}</strong>".<br>
+            Pastikan NIM Anda sudah terdaftar di database panitia wisuda.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = matched.map((student, idx) => {
+        const kerjaText = student.tempatKerja && student.tempatKerja !== '-' 
+          ? `<div class="pass-kerja-badge">🏢 Sudah Bekerja di: ${student.tempatKerja}</div>` 
+          : '';
+
+        const cumlaudeBadge = student.isCumlaude 
+          ? `<span class="badge badge-cumlaude" style="font-size: 0.72rem; margin-left: 0.5rem;">★ CUM LAUDE</span>` 
+          : '';
+
+        return `
+          <div class="student-pass-card" id="student-card-${idx}">
+            <div class="pass-photo-col">
+              <img src="${student.foto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'}" class="pass-photo-img" alt="${student.nama}">
+              <span class="badge badge-present" style="font-size: 0.7rem;">PESERTA WISUDA</span>
+            </div>
+
+            <div class="pass-details-col">
+              <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                <h3>${student.nama}</h3>
+                ${cumlaudeBadge}
+              </div>
+              <div class="pass-meta">NIM: <strong style="font-family: monospace; font-size: 1rem; color: #1e3a8a;">${student.nim}</strong></div>
+              <div class="pass-meta">Program Studi: <strong>${student.prodi || '-'}</strong> (${student.fakultas || 'Politeknik PGRI Banten'})</div>
+              ${student.ipk ? `<div class="pass-meta">Indeks Prestasi (IPK): <strong>${student.ipk}</strong> • ${student.predikat || ''}</div>` : ''}
+              ${kerjaText}
+            </div>
+
+            <div class="pass-codes-col">
+              <div class="pass-qr-box" id="pass-qr-wrapper-${idx}">
+                <canvas id="home-qr-${idx}"></canvas>
+              </div>
+              <div class="pass-barcode-box">
+                <svg id="home-barcode-${idx}"></svg>
+              </div>
+            </div>
+
+            <div class="pass-actions-footer">
+              <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">
+                Kode Resmi Wisuda Ke-10 Politeknik PGRI Banten
+              </span>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadQrCode('${student.nim}', '${(student.nama || '').replace(/'/g, "\\'")}', '${student.prodi || ''}')">
+                  💾 Download QR Code (PNG)
+                </button>
+                <a href="gelang.html?nim=${student.nim}" target="_blank" class="btn btn-gold btn-sm">
+                  🎫 Cetak Gelang Barcode Saya ↗
+                </a>
+                <a href="print-barcode.html?nim=${student.nim}" target="_blank" class="btn btn-secondary btn-sm">
+                  🏷️ Cetak Kartu ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Generate Barcode & QR Code
+      setTimeout(() => {
+        matched.forEach((student, idx) => {
+          if (typeof JsBarcode !== 'undefined') {
+            try {
+              JsBarcode(`#home-barcode-${idx}`, student.nim.toString(), {
+                format: "CODE128",
+                width: 1.4,
+                height: 38,
+                displayValue: true,
+                fontSize: 11,
+                lineColor: "#000000",
+                margin: 2
+              });
+            } catch (e) {}
+          }
+
+          if (typeof QRCode !== 'undefined') {
+            const canvasEl = document.getElementById(`home-qr-${idx}`);
+            if (canvasEl) {
+              QRCode.toCanvas(canvasEl, student.nim.toString(), {
+                width: 108,
+                margin: 2,
+                errorCorrectionLevel: 'H',
+                color: {
+                  dark: "#000000",
+                  light: "#ffffff"
+                }
+              }, (err) => {});
+            }
+          }
+        });
+      }, 50);
+    }
+
+    // Fungsi download QR Code Resolusi Tinggi siap scan dari layar HP atau print
+    function downloadQrCode(nim, nama, prodi) {
+      if (typeof QRCode === 'undefined') return;
+
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = 540;
+      offCanvas.height = 680;
+      const ctx = offCanvas.getContext('2d');
+
+      // Background kartu
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 540, 680);
+
+      // Frame border emas & navy
+      ctx.strokeStyle = '#0b132b';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(10, 10, 520, 660);
+
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(18, 18, 504, 644);
+
+      // Header Wisuda
+      ctx.fillStyle = '#0b132b';
+      ctx.fillRect(18, 18, 504, 80);
+
+      ctx.fillStyle = '#f7e394';
+      ctx.font = 'bold 20px "Cinzel", "Times New Roman", serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('WISUDA KE-10', 270, 52);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('POLITEKNIK PGRI BANTEN 2026', 270, 78);
+
+      // Render QR Code di tengah canvas sementara
+      const tempQr = document.createElement('canvas');
+      QRCode.toCanvas(tempQr, nim.toString(), {
+        width: 380,
+        margin: 2,
+        errorCorrectionLevel: 'H',
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      }, (err) => {
+        if (!err) {
+          ctx.drawImage(tempQr, 80, 120, 380, 380);
+
+          // Informasi Mahasiswa di bawah QR Code
+          ctx.fillStyle = '#0b132b';
+          ctx.font = 'bold 22px sans-serif';
+          ctx.fillText(nama || 'Wisudawan', 270, 540);
+
+          ctx.fillStyle = '#475569';
+          ctx.font = '600 15px sans-serif';
+          ctx.fillText(prodi || 'Politeknik PGRI Banten', 270, 570);
+
+          // Box NIM
+          ctx.fillStyle = '#f1f5f9';
+          ctx.strokeStyle = '#cbd5e1';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(140, 595, 260, 42, [8]);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#1e3a8a';
+          ctx.font = 'bold 20px monospace';
+          ctx.fillText(`NIM: ${nim}`, 270, 623);
+
+          // Unduh sebagai file PNG
+          const link = document.createElement('a');
+          link.download = `QR_Wisuda_PGRI_${nim}.png`;
+          link.href = offCanvas.toDataURL('image/png');
+          link.click();
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+
+      const searchInput = document.getElementById('home-search-input');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          renderSearchResults(e.target.value);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

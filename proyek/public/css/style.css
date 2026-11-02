@@ -1,0 +1,229 @@
+/* =========================================================
+   STYLE DASAR SISTEM SCANNER WISUDA
+   Warna Utama: Royal Navy Blue & Imperial Gold
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+
+:root {
+  --bg-primary: #0a0f1d;
+  --bg-secondary: #10192d;
+  --bg-tertiary: #17233f;
+  --bg-card: rgba(16, 25, 45, 0.88);
+  --bg-card-hover: rgba(23, 35, 63, 0.95);
+
+  --gold-50: #fffdf5;
+  --gold-100: #fef9e2;
+  --gold-200: #fbf1c0;
+  --gold-300: #f7e394;
+  --gold-400: #eed063;
+  --gold-500: #d4af37; /* Gold Utama */
+  --gold-600: #b58d24;
+  --gold-700: #8f6c1a;
+  --gold-800: #74561a;
+  --gold-gradient: linear-gradient(135deg, #f7e394 0%, #d4af37 50%, #aa771c 100%);
+  --gold-gradient-glow: linear-gradient(135deg, #fff3c4 0%, #e0bc4a 50%, #b8861e 100%);
+
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+
+  --accent-blue: #3b82f6;
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+
+  --border-subtle: rgba(212, 175, 55, 0.2);
+  --border-gold: rgba(212, 175, 55, 0.45);
+  --border-light: rgba(255, 255, 255, 0.1);
+
+  --shadow-gold: 0 10px 30px -5px rgba(212, 175, 55, 0.25);
+  --shadow-card: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+
+  --font-serif: 'Cinzel', 'Playfair Display', serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+/* =========================================================
+   THEMES TAMPILAN PANGGUNG
+   ========================================================= */
+body.theme-royal-gold {
+  --disp-bg: radial-gradient(circle at 50% 30%, #152243 0%, #0a1124 50%, #050814 100%);
+}
+
+body.theme-emerald-gold {
+  --disp-bg: radial-gradient(circle at 50% 30%, #0f382c 0%, #07231b 50%, #03120e 100%);
+  --gold-gradient: linear-gradient(135deg, #fef08a 0%, #d4af37 50%, #854d0e 100%);
+}
+
+body.theme-maroon-gold {
+  --disp-bg: radial-gradient(circle at 50% 30%, #450a16 0%, #2a050e 50%, #120206 100%);
+  --gold-gradient: linear-gradient(135deg, #fed7aa 0%, #d4af37 50%, #9a3412 100%);
+}
+
+body.theme-platinum-silver {
+  --disp-bg: radial-gradient(circle at 50% 30%, #1f2937 0%, #111827 50%, #030712 100%);
+  --gold-gradient: linear-gradient(135deg, #f3f4f6 0%, #9ca3af 50%, #4b5563 100%);
+  --gold-500: #e5e7eb;
+  --gold-300: #f9fafb;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: #253352;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-600);
+}
+
+/* Glassmorphism Panel */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+/* Tombol Mewah */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.88rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+.btn-gold {
+  background: var(--gold-gradient);
+  color: #121008;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+
+.btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.45);
+  background: var(--gold-gradient-glow);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.btn-danger {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.btn-danger:hover {
+  background: rgba(244, 63, 94, 0.35);
+  color: #fff;
+}
+
+.btn-outline-gold {
+  background: transparent;
+  color: var(--gold-400);
+  border: 1px solid var(--gold-500);
+}
+
+.btn-outline-gold:hover {
+  background: rgba(212, 175, 55, 0.15);
+  color: #fff;
+}
+
+/* Badge Status */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.badge-cumlaude {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(255, 215, 0, 0.15));
+  border: 1px solid var(--gold-500);
+  color: var(--gold-300);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.badge-present {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #6ee7b7;
+}
+
+.badge-pending {
+  background: rgba(107, 114, 128, 0.25);
+  border: 1px solid rgba(107, 114, 128, 0.4);
+  color: #d1d5db;
+}
+
+/* Status Dot Indicator */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-dot.active {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+.status-dot.inactive {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}

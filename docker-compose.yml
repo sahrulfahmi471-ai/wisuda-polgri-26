@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  wisuda-scanner:
+    build: .
+    container_name: wisuda-scanner
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+    volumes:
+      # Persistent storage for student list and settings
+      - ./proyek/public/data:/app/proyek/public/data

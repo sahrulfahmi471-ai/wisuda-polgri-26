@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Operator Scanner Wisuda</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/operator.css">
+  <!-- CDN Html5-Qrcode untuk scanner kamera opsional -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <div class="operator-container">
+    <!-- Header Operator -->
+    <header class="operator-header">
+      <div class="brand-wrapper">
+        <div class="brand-icon">🎓</div>
+        <div class="brand-text">
+          <h1>PANEL OPERATOR SCANNER WISUDA</h1>
+          <p id="header-univ-name">POLITEKNIK PGRI BANTEN - WISUDA KE-10</p>
+        </div>
+      </div>
+
+      <div class="header-status-group">
+        <div class="stats-card">
+          <div>
+            <div class="stats-value" id="count-total">0</div>
+            <div class="stats-label">Total Terdaftar</div>
+          </div>
+        </div>
+
+
+        <div class="stats-card">
+          <div>
+            <div class="stats-value" style="color: #34d399;" id="count-present">0</div>
+            <div class="stats-label">Sudah Maju</div>
+          </div>
+        </div>
+
+
+        <div class="stats-card">
+          <div>
+            <div class="stats-value" style="color: #fbbf24;" id="count-pending">0</div>
+            <div class="stats-label">Belum Maju</div>
+          </div>
+        </div>
+
+
+        <span id="conn-status-badge" class="badge badge-pending">
+          <span class="status-dot inactive"></span> Memeriksa Jaringan...
+        </span>
+
+        <button type="button" id="btn-open-colors" class="btn btn-gold" title="Kustomisasi Warna Layar Scan Display, Bingkai, dan Biodata Mahasiswa">
+          🎨 Kustomisasi Warna
+        </button>
+
+        <button type="button" id="btn-open-settings" class="btn btn-secondary" title="Kustomisasi Teks, Suara, dan Durasi Display">
+          ⚙️ Pengaturan Display
+        </button>
+
+        <a href="display.html" target="_blank" class="btn btn-outline-gold" title="Buka layar tampilan panggung di tab baru">
+          📽️ Layar Panggung ↗
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main class="main-layout">
+      <!-- Kolom Kiri: Scanner & Kontrol Panggung -->
+      <section class="scanner-card glass-panel">
+        <div class="section-title">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>🎯</span>
+            <strong>Pemindai Barcode / QR Wisudawan</strong>
+          </div>
+          <span id="scanner-ready-badge" class="badge badge-present" style="font-size: 0.72rem;">
+            ● ALAT SCAN SIAP
+          </span>
+        </div>
+
+        <!-- Banner Status Barcode Scanner Fisik -->
+        <div class="scanner-gun-status" id="gun-status-card">
+          <div class="scanner-pulse-icon">🔫</div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.88rem; font-weight: 700; color: #fff;">
+              Alat Scanner Fisik Siap Digunakan
+            </div>
+            <div style="font-size: 0.75rem; color: #cbd5e1;">
+              Arahkan scanner barcode USB/Bluetooth ke kartu mahasiswa, lalu tembak.
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Tab Selector: USB Scanner vs Kamera -->
+        <div class="scan-mode-tabs">
+          <button type="button" class="tab-btn active" id="tab-mode-usb">
+            🔫 Scanner Barcode USB / Gun
+          </button>
+          <button type="button" class="tab-btn" id="tab-mode-cam">
+            📹 Kamera Webcam / HP
+          </button>
+        </div>
+
+        <!-- Mode 1: USB Barcode Gun & Input Cepat -->
+        <div id="view-mode-usb" class="usb-scan-box">
+          <div class="input-group">
+            <span class="input-icon">🔍</span>
+            <input 
+              type="text" 
+              id="usb-barcode-input" 
+              class="form-input" 
+              placeholder="Tembak Barcode / Ketik NIM lalu tekan Enter..."
+              autofocus
+              autocomplete="off"
+            >
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <label class="autofocus-badge">
+              <input type="checkbox" id="check-autofocus" checked>
+              <span>Kunci Fokus Otomatis (Rekomendasi untuk Scanner Gun)</span>
+            </label>
+            <span style="font-size: 0.72rem; color: var(--gold-400);">
+              🔔 Bunyi bip otomatis saat scan
+            </span>
+          </div>
+        </div>
+
+
+        <!-- Mode 2: Kamera Scanner -->
+        <div id="view-mode-cam" class="usb-scan-box" style="display: none;">
+          <div class="camera-container">
+            <div id="camera-reader"></div>
+            <div class="camera-placeholder" id="camera-placeholder">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <p>Kamera belum aktif. Klik tombol di bawah untuk menyalakan.</p>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <select id="camera-select" class="form-input" style="padding: 0.5rem; font-size: 0.85rem; flex: 1;">
+              <option value="">Pilih Kamera...</option>
+            </select>
+            <button type="button" id="btn-toggle-camera" class="btn btn-gold" style="white-space: nowrap;">
+              📹 Nyalakan Kamera
+            </button>
+          </div>
+        </div>
+
+
+        <!-- Tombol Simulasi Cepat (Pengujian Mudah) -->
+        <div style="background: rgba(0,0,0,0.25); padding: 0.85rem; border-radius: 12px; border: 1px solid var(--border-light);">
+          <div style="font-size: 0.78rem; color: var(--gold-400); margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase;">
+            ⚡ Uji Coba Cepat (Simulasi Panggilan):
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <button type="button" id="btn-simulate-next" class="btn btn-secondary btn-sm">
+              ⏭️ Panggil Berikutnya
+            </button>
+            <button type="button" id="btn-simulate-random" class="btn btn-secondary btn-sm">
+              🎲 Panggil Acak
+            </button>
+          </div>
+        </div>
+
+
+        <!-- Kartu Wisudawan Yang Sedang Tampil -->
+        <div id="active-preview-card" class="active-student-card" style="display: none;">
+          <div style="font-size: 0.72rem; color: var(--gold-400); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem;">
+            🔴 SEDANG TAMPIL DI LAYAR PANGGUNG:
+          </div>
+          <div class="active-student-header">
+            <img id="active-photo" src="" class="active-student-img" alt="Foto">
+            <div class="active-student-info">
+              <h3 id="active-name">-</h3>
+              <p id="active-nim-prodi">-</p>
+              <span id="active-badge" class="badge badge-cumlaude" style="margin-top: 0.4rem;">-</span>
+            </div>
+          </div>
+          <div class="active-controls">
+            <button type="button" id="btn-resend-active" class="btn btn-secondary btn-sm">
+              🔄 Tampil Ulang
+            </button>
+            <button type="button" id="btn-trigger-standby" class="btn btn-outline-gold btn-sm">
+              🛑 Layar Standby
+            </button>
+          </div>
+        </div>
+
+
+        <!-- Kontrol Suara & Panggung Cepat -->
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--gold-400);">
+            🔊 Tes Audio & Suara:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <button type="button" id="btn-test-chime" class="btn btn-secondary btn-sm">
+              🔔 Lonceng Wisuda
+            </button>
+            <button type="button" id="btn-test-tts" class="btn btn-secondary btn-sm">
+              🗣️ Ucapkan Nama (TTS)
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Kolom Kanan: Database Wisudawan, Pendaftaran & Tabel -->
+      <section class="database-card glass-panel">
+        <div class="database-toolbar">
+          <div class="search-filter-group">
+            <input 
+              type="text" 
+              id="search-input" 
+              class="form-input" 
+              style="padding-left: 1rem;" 
+              placeholder="Cari nama, NIM, atau jurusan..."
+            >
+            <select id="filter-fakultas" class="form-input" style="max-width: 220px; padding: 0.65rem;">
+              <option value="">Semua Fakultas</option>
+            </select>
+          </div>
+
+          <!-- Tombol Aksi Pendaftaran & Data -->
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" id="btn-open-register-modal" class="btn btn-gold btn-sm">
+              ➕ Daftarkan Mahasiswa
+            </button>
+            <button type="button" id="btn-open-import-modal" class="btn btn-secondary btn-sm" title="Import data banyak mahasiswa sekaligus via CSV">
+              📥 Import CSV
+            </button>
+            <button type="button" id="btn-export-csv" class="btn btn-secondary btn-sm" title="Download daftar mahasiswa ke file CSV">
+              📤 Export CSV
+            </button>
+            <a href="gelang.html" target="_blank" class="btn btn-gold btn-sm" title="Cetak Gelang Barcode Wisudawan">
+              🎫 Template Gelang Barcode ↗
+            </a>
+            <a href="print-barcode.html" target="_blank" class="btn btn-secondary btn-sm" title="Cetak kartu identitas dan barcode wisudawan">
+              🏷️ Cetak Kartu
+            </a>
+            <button type="button" id="btn-reset-all" class="btn btn-danger btn-sm" title="Reset semua status menjadi Belum Hadir">
+              🔄 Reset Kehadiran
+            </button>
+          </div>
+        </div>
+
+
+        <!-- Tabel Daftar Wisudawan -->
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Wisudawan</th>
+                <th>Program Studi & Fakultas</th>
+                <th>IPK & Predikat</th>
+                <th>Status Kehadiran</th>
+                <th style="text-align: center; width: 180px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="student-table-body">
+              <!-- Render otomatis via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- =========================================================
+       MODAL 1: FORM PENDAFTARAN MAHASISWA BARU / EDIT
+       ========================================================= -->
+  <div id="register-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-form-title" style="font-family: var(--font-serif); color: var(--gold-400);">
+          ➕ Daftarkan Mahasiswa Wisuda
+        </h3>
+        <button type="button" class="btn-close-modal" id="btn-close-register" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+      <form id="form-register-student">
+        <input type="hidden" id="edit-original-nim" value="">
+        <div class="modal-body">
+          <div class="form-row">
+            <div>
+              <label class="form-label">Nomor Induk Mahasiswa (NIM / Barcode) *</label>
+              <input type="text" id="reg-nim" class="form-input" placeholder="Contoh: 202051015" required style="padding-left: 1rem;">
+              <span class="form-hint">Nomor ini yang akan dibaca oleh alat scanner barcode.</span>
+            </div>
+            <div>
+              <label class="form-label">Nama Lengkap & Gelar *</label>
+              <input type="text" id="reg-nama" class="form-input" placeholder="Contoh: Annisa Rahmawati, S.Kom." required style="padding-left: 1rem;">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label class="form-label">Fakultas</label>
+              <input type="text" id="reg-fakultas" class="form-input" placeholder="Fakultas Ilmu Komputer" style="padding-left: 1rem;">
+            </div>
+            <div>
+              <label class="form-label">Program Studi</label>
+              <input type="text" id="reg-prodi" class="form-input" placeholder="Teknik Informatika (S1)" style="padding-left: 1rem;">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label class="form-label">Indeks Prestasi Kumulatif (IPK)</label>
+              <input type="number" step="0.01" min="0" max="4.00" id="reg-ipk" class="form-input" placeholder="3.85" style="padding-left: 1rem;">
+            </div>
+            <div>
+              <label class="form-label">Predikat Kelulusan</label>
+              <input type="text" id="reg-predikat" class="form-input" placeholder="DENGAN PUJIAN (CUM LAUDE)" style="padding-left: 1rem;">
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.6rem; background: rgba(212,175,55,0.1); padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-gold);">
+            <input type="checkbox" id="reg-is-cumlaude" style="width: 18px; height: 18px; cursor: pointer;">
+            <label for="reg-is-cumlaude" style="font-size: 0.85rem; color: var(--gold-300); font-weight: 700; cursor: pointer;">
+              Tandai Sebagai Cum Laude (Efek Emas Berkilau & Fanfare Musik)
+            </label>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label class="form-label">Nama Orang Tua / Wali</label>
+              <input type="text" id="reg-orangtua" class="form-input" placeholder="Bpk. Hendra & Ibu Nuraini" style="padding-left: 1rem;">
+            </div>
+            <div>
+              <label class="form-label">Asal Daerah / Kota</label>
+              <input type="text" id="reg-asal" class="form-input" placeholder="Cilegon, Banten" style="padding-left: 1rem;">
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label">🏢 Tempat Kerja / Sudah Bekerja Di Mana (Opsional)</label>
+            <input type="text" id="reg-tempat-kerja" class="form-input" placeholder="Contoh: PT Krakatau Steel (Persero) Tbk" style="padding-left: 1rem;">
+            <span class="form-hint">Isi nama perusahaan tempat wisudawan bekerja (kosongkan jika belum bekerja).</span>
+          </div>
+
+          <div>
+            <label class="form-label">Judul Skripsi / Tesis / Karya Ilmiah</label>
+            <input type="text" id="reg-skripsi" class="form-input" placeholder="Judul karya akhir..." style="padding-left: 1rem;">
+          </div>
+
+          <!-- Foto Mahasiswa (Upload File atau URL) -->
+          <div>
+            <label class="form-label">Foto Mahasiswa</label>
+            <div class="photo-upload-row">
+              <div class="photo-preview-box">
+                <img id="reg-photo-preview" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="Preview Foto">
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 0.4rem;">
+                <input type="file" id="reg-file-photo" accept="image/*" style="font-size: 0.8rem; color: #cbd5e1;">
+                <input type="text" id="reg-url-photo" class="form-input" placeholder="Atau tempel URL gambar di sini..." style="padding-left: 1rem; font-size: 0.85rem;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Batal</button>
+          <button type="submit" class="btn btn-gold" id="btn-save-student">💾 Simpan Mahasiswa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 2: KUSTOMISASI PENGATURAN DISPLAY & ACARA
+       ========================================================= -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 860px;">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-serif); color: var(--gold-400);">
+          ⚙️ Kustomisasi Layar Display & Pengaturan Acara
+        </h3>
+        <button type="button" class="btn-close-modal" id="btn-close-settings" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tab Navigasi Pengaturan -->
+        <div class="settings-tabs" style="overflow-x: auto; flex-wrap: wrap;">
+          <button type="button" class="settings-tab-btn active" data-target="tab-set-text">
+            📝 Teks Panggung
+          </button>
+          <button type="button" class="settings-tab-btn" data-target="tab-set-duration">
+            ⏱️ Durasi Tampil
+          </button>
+          <button type="button" class="settings-tab-btn" data-target="tab-set-sound">
+            🔊 Suara & TTS
+          </button>
+          <button type="button" class="settings-tab-btn" data-target="tab-set-visual">
+            🎨 Tema & Elemen
+          </button>
+          <button type="button" class="settings-tab-btn" data-target="tab-set-photo">
+            🖼️ Kostumisasi Foto
+          </button>
+          <button type="button" class="settings-tab-btn" data-target="tab-set-colors" style="color: #fde047; font-weight: 700;">
+            🌈 Kustomisasi Warna
+          </button>
+        </div>
+
+        <!-- 1. Tab Teks Panggung -->
+        <div class="settings-pane active" id="tab-set-text">
+          <div>
+            <label class="form-label">Nama Universitas / Institusi</label>
+            <input type="text" id="set-univ-name" class="form-input" placeholder="UNIVERSITAS NUSANTARA GEMILANG" style="padding-left: 1rem;">
+            <span class="form-hint">Teks ini tampil megah di tengah layar saat mode Standby.</span>
+          </div>
+
+          <div>
+            <label class="form-label">Sub-Judul Acara</label>
+            <input type="text" id="set-sub-title" class="form-input" placeholder="SIDANG TERBUKA SENAT UNIVERSITAS" style="padding-left: 1rem;">
+          </div>
+
+          <div>
+            <label class="form-label">Sesi / Periode Wisuda</label>
+            <input type="text" id="set-session-name" class="form-input" placeholder="Upacara Wisuda Program Sarjana, Magister & Doktor Periode I 2026" style="padding-left: 1rem;">
+          </div>
+
+          <div>
+            <label class="form-label">Kalimat Sambutan Bawah (Standby Message)</label>
+            <input type="text" id="set-standby-msg" class="form-input" placeholder="Selamat Datang Kepada Seluruh Wisudawan, Wisudawati & Tamu Kehormatan" style="padding-left: 1rem;">
+          </div>
+        </div>
+
+
+        <!-- 2. Tab Durasi Tampil -->
+        <div class="settings-pane" id="tab-set-duration">
+          <div>
+            <label class="form-label">Berapa Detik Tampil di Halaman Display?</label>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <input type="number" id="set-duration-sec" class="form-input" min="3" max="120" style="padding-left: 1rem; width: 140px;" value="15">
+              <span style="font-weight: 700; color: #fff;">Detik per wisudawan</span>
+            </div>
+            <span class="form-hint">Durasi kartu mahasiswa tampil di layar sebelum otomatis kembali ke mode siaga.</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.6rem; margin-top: 0.5rem;">
+            <input type="checkbox" id="set-auto-return" checked style="width: 18px; height: 18px; cursor: pointer;">
+            <label for="set-auto-return" style="font-size: 0.88rem; color: #fff; cursor: pointer;">
+              Otomatis kembali ke layar siaga (Standby) setelah durasi berakhir
+            </label>
+          </div>
+          <span class="form-hint">Jika dinonaktifkan, tampilan wisudawan akan tetap berada di layar sampai ada scan barcode berikutnya.</span>
+        </div>
+
+        <!-- 3. Tab Suara & TTS -->
+        <div class="settings-pane" id="tab-set-sound">
+          <div>
+            <label class="form-label">Lokasi Pemutaran Suara</label>
+            <select id="set-sound-location" class="form-input" style="padding-left: 1rem;">
+              <option value="display">Hanya di Layar Display / Panggung (Terhubung ke Sound System)</option>
+              <option value="operator">Hanya di Laptop Operator</option>
+              <option value="both">Di Kedua Tab (Operator & Display)</option>
+            </select>
+            <span class="form-hint">Pilih di perangkat mana lonceng dan ucapan nama dibunyikan.</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-top: 0.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #fff; cursor: pointer;">
+              <input type="checkbox" id="set-enable-chime" checked style="width: 18px; height: 18px;">
+              <span>Bunyikan Lonceng Genta Wisuda</span>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #fff; cursor: pointer;">
+              <input type="checkbox" id="set-enable-fanfare" checked style="width: 18px; height: 18px;">
+              <span>Bunyikan Fanfare Musik Cum Laude</span>
+            </label>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; margin-top: 0.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: var(--gold-300); font-weight: 700; cursor: pointer;">
+              <input type="checkbox" id="set-enable-tts" checked style="width: 18px; height: 18px;">
+              <span>Aktifkan Suara Pembacaan Nama (Text to Speech Bahasa Indonesia)</span>
+            </label>
+          </div>
+
+          <div>
+            <label class="form-label">Template Pengucapan Suara (TTS)</label>
+            <input type="text" id="set-tts-template" class="form-input" value="{nama}. Program Studi {prodi}. Predikat {predikat}." style="padding-left: 1rem;">
+            <span class="form-hint">Gunakan variabel: <code>{nama}</code>, <code>{nim}</code>, <code>{prodi}</code>, <code>{fakultas}</code>, <code>{ipk}</code>, <code>{predikat}</code></span>
+          </div>
+        </div>
+
+
+        <!-- 4. Tab Tata Letak & Elemen Tampil -->
+        <div class="settings-pane" id="tab-set-visual">
+          <div class="form-row">
+            <div>
+              <label class="form-label">📐 Tata Letak Tampilan Layar Panggung</label>
+              <select id="set-display-layout" class="form-input" style="padding-left: 1rem;">
+                <option value="centered" selected>⭐ Foto di Tengah Atas, Biodata di Bawah Foto (Center Stack)</option>
+                <option value="split-left">Foto di Kiri, Biodata di Kanan (2 Kolom Klasik)</option>
+                <option value="split-right">Biodata di Kiri, Foto di Kanan (Split Reverse)</option>
+              </select>
+              <span class="form-hint">Atur susunan posisi foto wisudawan dan biodata di layar display.</span>
+            </div>
+
+            <div>
+              <label class="form-label">🎨 Tema Warna Layar Panggung</label>
+              <select id="set-theme" class="form-input" style="padding-left: 1rem;">
+                <option value="royal-gold">Royal Navy Blue & Imperial Gold (Klasik Megah)</option>
+                <option value="emerald-gold">Emerald Green & Gold (Nuansa Hijau Islami/UIN/Pertanian)</option>
+                <option value="maroon-gold">Royal Maroon Burgundy & Gold (Nuansa Merah Marun)</option>
+                <option value="platinum-silver">Deep Obsidian & Platinum Silver (Modern Elegan)</option>
+              </select>
+              <span class="form-hint">Kombinasi warna utama panggung dan ornamen latar belakang.</span>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.85rem; margin-top: 0.5rem;">
+            <label class="form-label" style="margin-bottom: 0.25rem;">
+              📋 Pilih Apa Saja yang Ditampilkan di Halaman Scan Display (Semua Opsional):
+            </label>
+            <span class="form-hint" style="margin-bottom: 0.85rem; display: block;">
+              Centang elemen yang ingin dimunculkan, atau hilangkan centang untuk menyembunyikannya dari layar panggung.
+            </span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-name" checked style="width: 18px; height: 18px;">
+                <span>Nama Lengkap & Gelar</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-nim" checked style="width: 18px; height: 18px;">
+                <span>Nomor Induk Mahasiswa (NIM)</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-prodi" checked style="width: 18px; height: 18px;">
+                <span>Program Studi (Prodi)</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-kerja" checked style="width: 18px; height: 18px;">
+                <span>Status Sudah Bekerja Di Mana</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-ipk" checked style="width: 18px; height: 18px;">
+                <span>Angka Indeks Prestasi (IPK)</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-predikat" checked style="width: 18px; height: 18px;">
+                <span>Predikat Kelulusan / Cum Laude</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-photo" checked style="width: 18px; height: 18px;">
+                <span>Foto Mahasiswa</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-faculty" checked style="width: 18px; height: 18px;">
+                <span>Nama Fakultas / Politeknik</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-parents" style="width: 18px; height: 18px;">
+                <span>Nama Orang Tua</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-origin" style="width: 18px; height: 18px;">
+                <span>Asal Daerah</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #fff; cursor: pointer; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                <input type="checkbox" id="set-show-thesis" style="width: 18px; height: 18px;">
+                <span>Judul Skripsi / Karya Ilmiah</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- 5. Tab Kostumisasi Foto & Ambient Light -->
+        <div class="settings-pane" id="tab-set-photo">
+          <div class="form-row">
+            <div>
+              <label class="form-label">Bentuk Bingkai Foto</label>
+              <select id="set-photo-shape" class="form-input" style="padding-left: 1rem;">
+                <option value="circle">Lingkaran Sempurna (Bulat Klasik 50%)</option>
+                <option value="rounded">Persegi Membulat (Squircle Modern)</option>
+                <option value="portrait">Pas Foto Formal Portrait (Rasio 3:4)</option>
+                <option value="square">Persegi Elegan (Rasio 1:1)</option>
+                <option value="hexagon">Hexagon / Segienam Futuristik</option>
+              </select>
+              <span class="form-hint">Pilih bentuk bingkai foto yang akan tampil di panggung.</span>
+            </div>
+
+            <div>
+              <label class="form-label">Ukuran Foto di Layar Display</label>
+              <select id="set-photo-size" class="form-input" style="padding-left: 1rem;">
+                <option value="small">Kecil (250px - Ramping)</option>
+                <option value="medium" selected>Sedang (320px - Standar Panggung)</option>
+                <option value="large">Besar (380px - Megah & Menonjol)</option>
+                <option value="xlarge">Ekstra Besar (440px - Videotron Raksasa)</option>
+              </select>
+              <span class="form-hint">Besar kecilnya foto wisudawan di layar panggung.</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label class="form-label">Warna Bingkai Foto</label>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="color" id="set-photo-border-color" value="#d4af37" style="width: 50px; height: 42px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                <input type="text" id="set-photo-border-hex" class="form-input" value="#d4af37" style="padding-left: 1rem; width: 120px;" placeholder="#d4af37">
+              </div>
+              <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetPhotoColor('#d4af37')" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-color: #d4af37; color: #fde047;">Emas</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetPhotoColor('#3b82f6')" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-color: #3b82f6; color: #93c5fd;">Biru PGRI</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetPhotoColor('#10b981')" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-color: #10b981; color: #6ee7b7;">Hijau Zamrud</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetPhotoColor('#e11d48')" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-color: #e11d48; color: #fda4af;">Merah Rubi</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetPhotoColor('#ffffff')" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-color: #ffffff; color: #ffffff;">Putih Kristal</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label">Efek Animasi Cincin Luar</label>
+              <select id="set-photo-ring-effect" class="form-input" style="padding-left: 1rem;">
+                <option value="rotating">Cincin Berputar 360° (Ornamen Emas Berputar)</option>
+                <option value="glow">Aura Denyut Cahaya (Breathing Glow Pulse)</option>
+                <option value="double">Bingkai Ganda Elegan (Double Border)</option>
+                <option value="clean">Bersih Minimalis Tanpa Cincin Luar</option>
+              </select>
+              <span class="form-hint">Gaya animasi visual ornamen di sekeliling bingkai foto.</span>
+            </div>
+          </div>
+
+          <!-- ✨ PENGATURAN AMBIENT LIGHT FOTO -->
+          <div style="background: rgba(16, 25, 45, 0.7); border: 1px solid var(--border-gold); border-radius: 14px; padding: 1.25rem; margin-top: 0.75rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem; font-weight: 700; color: var(--gold-300); cursor: pointer;">
+                <input type="checkbox" id="set-ambient-enabled" checked style="width: 20px; height: 20px; cursor: pointer;">
+                <span>✨ Aktifkan Ambient Light (Cahaya Pendaran Studio di Belakang Foto)</span>
+              </label>
+            </div>
+            
+            <div id="ambient-settings-content">
+              <div class="form-row">
+                <div>
+                  <label class="form-label">Warna Ambient Light</label>
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <input type="color" id="set-ambient-color" value="#d4af37" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                    <input type="text" id="set-ambient-hex" class="form-input" value="#d4af37" style="padding-left: 1rem; width: 110px;" placeholder="#d4af37">
+                  </div>
+                  <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetAmbientColor('#d4af37')" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: #d4af37; color: #fde047;">Emas</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetAmbientColor('#0284c7')" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: #0284c7; color: #38bdf8;">Biru Neon</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetAmbientColor('#a855f7')" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: #a855f7; color: #c084fc;">Ungu Cyber</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetAmbientColor('#10b981')" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: #10b981; color: #6ee7b7;">Emerald</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetAmbientColor('#f97316')" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: #f97316; color: #fb923c;">Sunset</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetAmbientColor('#ffffff')" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: #ffffff; color: #ffffff;">Putih Pijar</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="form-label">Mode Animasi Ambient Light</label>
+                  <select id="set-ambient-anim" class="form-input" style="padding-left: 1rem;">
+                    <option value="breathe" selected>Breathing Pulse (Denyut Lembut Bernapas)</option>
+                    <option value="aurora">Aurora Glow (Spektrum Gradasi Mengalir)</option>
+                    <option value="steady">Steady Glow (Pijar Stabil Tanpa Kedip)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row" style="margin-top: 0.75rem;">
+                <div>
+                  <label class="form-label">Jangkauan Pendaran (Radius Glow)</label>
+                  <select id="set-ambient-radius" class="form-input" style="padding-left: 1rem;">
+                    <option value="35">Lembut (35px - Ringan)</option>
+                    <option value="60" selected>Sedang (60px - Standar Studio)</option>
+                    <option value="95">Kuat (95px - Menonjol Dramatis)</option>
+                    <option value="140">Spektakuler (140px - Videotron Raksasa)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="form-label">Tingkat Kecerahan / Intensitas</label>
+                  <select id="set-ambient-intensity" class="form-input" style="padding-left: 1rem;">
+                    <option value="0.45">Redup Elegan (45%)</option>
+                    <option value="0.75" selected>Standar Terang (75%)</option>
+                    <option value="1.0">Maksimal Menyala (100%)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pratinjau Mini Langsung di Form dengan Efek Ambient Light -->
+          <div style="background: rgba(0,0,0,0.45); border: 1px dashed var(--border-gold); border-radius: 12px; padding: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 2rem; margin-top: 0.85rem; position: relative; overflow: hidden;">
+            <div style="position: relative; width: 130px; height: 130px; display: flex; align-items: center; justify-content: center;">
+              <!-- Mini Ambient Halo in Preview -->
+              <div id="photo-setting-preview-ambient" style="position: absolute; inset: -15px; border-radius: 50%; background: radial-gradient(circle, #d4af37 0%, transparent 70%); filter: blur(25px); opacity: 0.85; transition: all 0.3s ease; pointer-events: none;"></div>
+              
+              <div id="photo-setting-preview-box" style="position: relative; z-index: 2; width: 120px; height: 120px; border-radius: 50%; padding: 4px; background: linear-gradient(135deg, #fff 0%, #d4af37 50%, #000 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(212,175,55,0.5); transition: all 0.3s ease;">
+                <img id="photo-setting-preview-img" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #000; transition: border-radius 0.3s ease;">
+              </div>
+            </div>
+            <div style="font-size: 0.85rem; color: #cbd5e1; max-width: 320px; z-index: 3;">
+              <strong style="color: var(--gold-300); display: block; margin-bottom: 0.25rem;">Pratinjau Foto & Ambient Light</strong>
+              Simulasi foto dan pendaran cahaya panggung (*ambient light*) yang akan tampil saat barcode wisudawan discan.
+            </div>
+          </div>
+        </div>
+
+
+        <!-- 6. Tab Kostumisasi Warna: Layar Scan Display, Bingkai & Biodata -->
+        <div class="settings-pane" id="tab-set-colors">
+          <!-- Preset Skema Warna Cepat -->
+          <div style="background: rgba(16, 25, 45, 0.7); border: 1px solid var(--border-gold); border-radius: 14px; padding: 1.15rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.5rem;">
+              <span style="font-size: 0.88rem; font-weight: 800; color: var(--gold-300);">
+                ⚡ Preset Skema Warna Lengkap (1-Klik):
+              </span>
+              <button type="button" id="btn-reset-default-colors" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">
+                🔄 Reset Warna Standar Resmi
+              </button>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="applyColorThemePreset('royal-gold')" style="border-color: #d4af37; color: #fde047; font-size: 0.75rem;">
+                👑 Royal Navy & Gold
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="applyColorThemePreset('emerald-green')" style="border-color: #10b981; color: #6ee7b7; font-size: 0.75rem;">
+                🌿 Emerald Islamic Green
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="applyColorThemePreset('ruby-maroon')" style="border-color: #e11d48; color: #fda4af; font-size: 0.75rem;">
+                🍷 Ruby Maroon Luxury
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="applyColorThemePreset('cyber-neon')" style="border-color: #06b6d4; color: #67e8f9; font-size: 0.75rem;">
+                🌌 Cyber Blue & Neon
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="applyColorThemePreset('obsidian-silver')" style="border-color: #cbd5e1; color: #f1f5f9; font-size: 0.75rem;">
+                🖤 Obsidian & Platinum
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 1: Warna Layar Scan Display -->
+          <div style="background: rgba(10, 16, 32, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 1.15rem;">
+            <div style="font-size: 0.92rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.85rem;">
+              <span>🖥️</span> 1. Warna Layar Scan Display (Background & Kartu Showcase)
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Warna Pusat Gradasi Layar (Atas/Tengah)</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-disp-bg1" value="#152243" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-disp-bg1-hex" class="form-input" value="#152243" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Warna pendaran pusat layar panggung / videotron.</span>
+              </div>
+
+              <div>
+                <label class="form-label">Warna Luar Gradasi Layar (Dasar/Tepi)</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-disp-bg2" value="#050814" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-disp-bg2-hex" class="form-input" value="#050814" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Warna bayangan gelap tepi layar panggung.</span>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 0.85rem;">
+              <div>
+                <label class="form-label">Warna Background Kartu Biodata</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-disp-card-bg" value="#10192d" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-disp-card-bg-hex" class="form-input" value="#10192d" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Warna panel kotak tempat data mahasiswa tampil.</span>
+              </div>
+
+              <div>
+                <label class="form-label">Transparansi Kartu Biodata: <span id="label-card-opacity" style="color: var(--gold-400);">94%</span></label>
+                <input type="range" id="set-disp-card-opacity" min="0.5" max="1" step="0.02" value="0.94" style="width: 100%; margin-top: 0.5rem; accent-color: var(--gold-500); cursor: pointer;">
+                <span class="form-hint">Tingkat tembus pandang kotak kartu wisudawan.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Warna Bingkai (Frame & Border) -->
+          <div style="background: rgba(10, 16, 32, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 1.15rem;">
+            <div style="font-size: 0.92rem; font-weight: 800; color: #fde047; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.85rem;">
+              <span>🖼️</span> 2. Warna Bingkai (Panggung, Kartu & Foto)
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Warna Bingkai Layar Panggung & Ornamen Sudut</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-stage-border-color" value="#d4af37" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-stage-border-hex" class="form-input" value="#d4af37" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Garis border emas mengelilingi seluruh layar proyektor.</span>
+              </div>
+
+              <div>
+                <label class="form-label">Warna Pendaran Cahaya (Glow) Bingkai Panggung</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-stage-border-glow" value="#d4af37" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-stage-border-glow-hex" class="form-input" value="#d4af37" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Cahaya pendaran di sekeliling border panggung.</span>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 0.85rem;">
+              <div>
+                <label class="form-label">Warna Garis Bingkai Kartu Wisudawan</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-card-border-color" value="#d4af37" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-card-border-hex" class="form-input" value="#d4af37" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Garis tepi pada kotak profil wisudawan.</span>
+              </div>
+
+              <div>
+                <label class="form-label">Warna Pendaran (Glow) Kartu Wisudawan</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-card-glow-color" value="#d4af37" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-card-glow-hex" class="form-input" value="#d4af37" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Aura cahaya di belakang kotak kartu wisudawan.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Warna Biodata Mahasiswa -->
+          <div style="background: rgba(10, 16, 32, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 1.15rem;">
+            <div style="font-size: 0.92rem; font-weight: 800; color: #a7f3d0; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.85rem;">
+              <span>👤</span> 3. Warna Biodata Mahasiswa (Teks & Komponen Data)
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Warna Teks Nama Mahasiswa</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-bio-name-color" value="#ffffff" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-bio-name-hex" class="form-input" value="#ffffff" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Teks nama lengkap wisudawan di panggung.</span>
+              </div>
+
+              <div>
+                <label class="form-label">Warna Teks Program Studi</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-bio-prodi-color" value="#93c5fd" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-bio-prodi-hex" class="form-input" value="#93c5fd" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Contoh: D3 Teknik Mesin, D3 Manajemen Informatika.</span>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 0.85rem;">
+              <div>
+                <label class="form-label">Warna Badge Fakultas / Kampus</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-bio-faculty-color" value="#f7e394" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-bio-faculty-hex" class="form-input" value="#f7e394" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Teks dan garis pada pill nama kampus di atas nama.</span>
+              </div>
+
+              <div>
+                <label class="form-label">Warna Teks NIM (Nomor Induk Mahasiswa)</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-bio-nim-color" value="#ffffff" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-bio-nim-hex" class="form-input" value="#ffffff" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Warna angka NIM di kotak metrik.</span>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 0.85rem;">
+              <div>
+                <label class="form-label">Warna Angka IPK (Indeks Prestasi)</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-bio-ipk-color" value="#67e8f9" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-bio-ipk-hex" class="form-input" value="#67e8f9" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Warna angka IPK (contoh: 3.88).</span>
+              </div>
+
+              <div>
+                <label class="form-label">Warna Predikat Kelulusan / Cum Laude</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-bio-predikat-color" value="#d4af37" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-bio-predikat-hex" class="form-input" value="#d4af37" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Warna badge dan teks kelulusan Dengan Pujian / Memuaskan.</span>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 0.85rem;">
+              <div>
+                <label class="form-label">Warna Teks Detail Tambahan (Orang Tua, Asal, Skripsi)</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <input type="color" id="set-bio-detail-color" value="#cbd5e1" style="width: 48px; height: 38px; border-radius: 8px; border: 1px solid var(--border-gold); background: transparent; cursor: pointer;">
+                  <input type="text" id="set-bio-detail-hex" class="form-input" value="#cbd5e1" style="padding-left: 0.75rem; width: 110px;">
+                </div>
+                <span class="form-hint">Warna baris keterangan sekunder di bawah kartu.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Live Interactive Preview Layar Panggung -->
+          <div style="background: rgba(0,0,0,0.5); border: 2px dashed var(--border-gold); border-radius: 16px; padding: 1.25rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+              <span style="font-size: 0.85rem; font-weight: 800; color: var(--gold-300); text-transform: uppercase; letter-spacing: 0.05em;">
+                👁️ Simulasi Pratinjau Layar Display Panggung (Real-Time):
+              </span>
+              <span style="font-size: 0.72rem; color: #94a3b8;">
+                Perubahan warna otomatis langsung terlihat di sini
+              </span>
+            </div>
+
+            <!-- Mini Stage Container -->
+            <div id="mini-stage-preview" style="position: relative; width: 100%; border-radius: 14px; padding: 1.5rem; overflow: hidden; min-height: 230px; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 30%, #152243 0%, #050814 100%); transition: background 0.3s ease;">
+              <!-- Mini Stage Border -->
+              <div id="mini-preview-stage-border" style="position: absolute; inset: 8px; border: 2px solid #d4af37; border-radius: 10px; pointer-events: none; box-shadow: 0 0 15px rgba(212,175,55,0.3); transition: border-color 0.3s ease, box-shadow 0.3s ease;"></div>
+              <div id="mini-preview-corner-tl" style="position: absolute; top: 5px; left: 5px; width: 16px; height: 16px; border-top: 3px solid #d4af37; border-left: 3px solid #d4af37; transition: border-color 0.3s ease;"></div>
+              <div id="mini-preview-corner-tr" style="position: absolute; top: 5px; right: 5px; width: 16px; height: 16px; border-top: 3px solid #d4af37; border-right: 3px solid #d4af37; transition: border-color 0.3s ease;"></div>
+              <div id="mini-preview-corner-bl" style="position: absolute; bottom: 5px; left: 5px; width: 16px; height: 16px; border-bottom: 3px solid #d4af37; border-left: 3px solid #d4af37; transition: border-color 0.3s ease;"></div>
+              <div id="mini-preview-corner-br" style="position: absolute; bottom: 5px; right: 5px; width: 16px; height: 16px; border-bottom: 3px solid #d4af37; border-right: 3px solid #d4af37; transition: border-color 0.3s ease;"></div>
+
+              <!-- Mini Showcase Card -->
+              <div id="mini-preview-card" style="position: relative; z-index: 2; width: 92%; max-width: 580px; background: rgba(16, 25, 45, 0.94); border: 2px solid #d4af37; border-radius: 16px; padding: 1.15rem 1.35rem; display: flex; gap: 1.25rem; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(212,175,55,0.35); transition: all 0.3s ease;">
+                <!-- Mini Photo with Frame & Glow -->
+                <div style="position: relative; width: 85px; height: 85px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                  <div id="mini-preview-photo-ambient" style="position: absolute; inset: -8px; border-radius: 50%; background: radial-gradient(circle, #d4af37 0%, transparent 70%); filter: blur(12px); opacity: 0.8; transition: all 0.3s ease;"></div>
+                  <div id="mini-preview-photo-ring" style="position: relative; z-index: 2; width: 80px; height: 80px; border-radius: 50%; padding: 3px; background: linear-gradient(135deg, #fff 0%, #d4af37 50%, #000 100%); display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160" alt="Wisudawan" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #000;">
+                  </div>
+                </div>
+
+                <!-- Mini Biodata Details -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 0.35rem; min-width: 0;">
+                  <div id="mini-preview-faculty" style="display: inline-flex; align-items: center; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; padding: 0.15rem 0.6rem; border-radius: 999px; border: 1px solid #f7e394; color: #f7e394; background: rgba(247,227,148,0.15); width: fit-content; text-transform: uppercase;">
+                    POLITEKNIK PGRI BANTEN
+                  </div>
+
+                  <div id="mini-preview-name" style="font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2;">
+                    Ahmad Fauzi Rahman, A.Md.T.
+                  </div>
+
+                  <div id="mini-preview-prodi" style="font-size: 0.8rem; font-weight: 600; color: #93c5fd;">
+                    D3 Teknik Mesin
+                  </div>
+
+                  <!-- Mini Metric Badges -->
+                  <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem; flex-wrap: wrap;">
+                    <span id="mini-preview-nim" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #ffffff;">
+                      NIM: 202111001
+                    </span>
+                    <span id="mini-preview-ipk" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #67e8f9;">
+                      IPK: 3.88
+                    </span>
+                    <span id="mini-preview-predikat" style="background: rgba(212,175,55,0.2); border: 1px solid #d4af37; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.72rem; font-weight: 800; color: #d4af37;">
+                      ★ CUM LAUDE ★
+                    </span>
+                  </div>
+
+                  <div id="mini-preview-detail" style="font-size: 0.7rem; color: #cbd5e1; margin-top: 0.2rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.25rem;">
+                    Putra Dari: <span style="font-weight: 600;">Bpk. Rahman & Ibu Siti</span> • Cilegon
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-close-modal">Tutup</button>
+        <button type="button" class="btn btn-gold" id="btn-save-settings">
+          💾 Simpan & Terapkan ke Layar Panggung
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 3: IMPORT DATA CSV / EXCEL
+       ========================================================= -->
+  <div id="import-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-serif); color: var(--gold-400);">
+          📥 Import Data Wisudawan Massal (CSV)
+        </h3>
+        <button type="button" class="btn-close-modal" id="btn-close-import" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          Anda dapat mendaftarkan ratusan mahasiswa sekaligus menggunakan file CSV. Kolom yang dibutuhkan: <strong>nim, nama, fakultas, prodi, ipk, predikat, orangtua, asal, skripsi, foto</strong>.
+        </p>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="button" id="btn-download-csv-template" class="btn btn-outline-gold btn-sm">
+            📄 Download Template CSV Contoh
+          </button>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); border: 2px dashed var(--border-gold); border-radius: 12px; padding: 1.5rem; text-align: center;">
+          <input type="file" id="csv-file-input" accept=".csv, text/csv" style="display: none;">
+          <button type="button" onclick="document.getElementById('csv-file-input').click()" class="btn btn-secondary">
+            📁 Pilih File CSV dari Komputer
+          </button>
+          <div id="csv-file-name" style="margin-top: 0.5rem; font-size: 0.82rem; color: var(--gold-300);">
+            Belum ada file yang dipilih
+          </div>
+        </div>
+
+
+        <!-- Mode Import -->
+        <div>
+          <label class="form-label">Metode Penggabungan Data:</label>
+          <select id="csv-import-mode" class="form-input" style="padding-left: 1rem;">
+            <option value="append">Tambahkan / Perbarui ke data yang sudah ada (Rekomendasi)</option>
+            <option value="replace">Ganti seluruh data lama dengan file CSV baru</option>
+          </select>
+        </div>
+
+        <div id="csv-preview-container" style="display: none; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.4); border-radius: 8px; padding: 0.75rem; font-size: 0.78rem;">
+          <strong style="color: var(--gold-400);">Pratinjau Data:</strong>
+          <div id="csv-preview-text"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-close-modal">Batal</button>
+        <button type="button" class="btn btn-gold" id="btn-process-import">
+          🚀 Mulai Import Data
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/audio-synth.js"></script>
+  <script src="js/scanner-helper.js"></script>
+  <script src="js/sync-client.js"></script>
+  <script src="js/operator.js"></script>
+</body>
+</html>
